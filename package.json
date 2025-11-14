@@ -1,0 +1,25 @@
+{
+  "name": "prospecthub-vercel",
+  "version": "1.0.0",
+  "description": "Application de gestion de prospects avec base de données",
+  "scripts": {
+    "dev": "next dev",
+    "import-local": "node scripts/import_local.js",
+    "build": "next build",
+    "start": "next start",
+    "export": "next build && next export"
+  },
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "@supabase/supabase-js": "^2.38.0",
+    "chart.js": "^4.4.0",
+    "react-chartjs-2": "^5.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}
