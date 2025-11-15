@@ -1,0 +1,538 @@
+import React from 'react';
+import Head from 'next/head';
+import { useRouter } from 'next/router';
+
+export default function Landing() {
+  const router = useRouter();
+
+  return (
+    <>
+      <Head>
+        <title>ProspectHub - Gestion Professionnelle de Prospects</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="Gérez vos prospects de manière professionnelle avec ProspectHub" />
+      </Head>
+
+      <style jsx global>{`
+        * { 
+          margin: 0; 
+          padding: 0; 
+          box-sizing: border-box; 
+        }
+        
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+          background: #ffffff;
+          color: #1a1a1a;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+          animation: fadeIn 0.8s ease-out forwards;
+        }
+
+        .slide-up {
+          animation: slideUp 0.8s ease-out forwards;
+        }
+      `}</style>
+
+      {/* Navigation */}
+      <nav style={styles.nav}>
+        <div style={styles.navContainer}>
+          <div style={styles.logo}>
+            <span style={styles.logoIcon}>📊</span>
+            <span style={styles.logoText}>ProspectHub</span>
+          </div>
+          <button onClick={() => router.push('/')} style={styles.navButton}>
+            Ouvrir l'application →
+          </button>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section style={styles.hero}>
+        <div style={styles.heroContent} className="fade-in">
+          <h1 style={styles.heroTitle}>
+            Gérez vos prospects
+            <br />
+            <span style={styles.heroAccent}>avec simplicité</span>
+          </h1>
+          <p style={styles.heroSubtitle}>
+            Une solution minimaliste et moderne pour organiser, rechercher et contacter vos prospects professionnels.
+          </p>
+          <div style={styles.heroButtons}>
+            <button onClick={() => router.push('/')} style={styles.primaryButton}>
+              Commencer gratuitement
+            </button>
+            <a href="#features" style={styles.secondaryButton}>
+              Découvrir les fonctionnalités
+            </a>
+          </div>
+        </div>
+        <div style={styles.heroImage} className="slide-up">
+          <div style={styles.mockup}>
+            <div style={styles.mockupHeader}>
+              <div style={styles.mockupDot}></div>
+              <div style={styles.mockupDot}></div>
+              <div style={styles.mockupDot}></div>
+            </div>
+            <div style={styles.mockupContent}>
+              <div style={styles.mockupStats}>
+                {[
+                  { label: 'Total', value: '127', color: '#1a1a1a' },
+                  { label: 'À Contacter', value: '45', color: '#dc2626' },
+                  { label: 'Contactés', value: '82', color: '#16a34a' },
+                ].map((stat, i) => (
+                  <div key={i} style={styles.mockupStatCard}>
+                    <div style={{ ...styles.mockupStatValue, color: stat.color }}>{stat.value}</div>
+                    <div style={styles.mockupStatLabel}>{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={styles.mockupSearch}>
+                <span style={styles.mockupSearchIcon}>🔍</span>
+                <span style={styles.mockupSearchText}>Rechercher...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" style={styles.features}>
+        <div style={styles.container}>
+          <h2 style={styles.sectionTitle}>Fonctionnalités principales</h2>
+          <div style={styles.featuresGrid}>
+            {[
+              {
+                icon: '🔍',
+                title: 'Recherche avancée',
+                description: 'Recherche instantanée par nom, ville, catégorie, téléphone et plus encore.'
+              },
+              {
+                icon: '📊',
+                title: 'Statistiques en temps réel',
+                description: 'Visualisez vos KPIs et suivez vos performances en un coup d\'œil.'
+              },
+              {
+                icon: '🏷️',
+                title: 'Organisation intelligente',
+                description: 'Filtrez par ville, catégorie, statut de contact et site web.'
+              },
+              {
+                icon: '📥',
+                title: 'Import/Export CSV',
+                description: 'Importez vos données en masse et exportez vos prospects filtrés.'
+              },
+              {
+                icon: '⌨️',
+                title: 'Raccourcis clavier',
+                description: 'Navigation rapide avec ⌘K, ⌘N, ⌘I pour gagner du temps.'
+              },
+              {
+                icon: '📱',
+                title: '100% Responsive',
+                description: 'Interface optimisée pour desktop, tablette et mobile.'
+              },
+            ].map((feature, i) => (
+              <div key={i} style={styles.featureCard}>
+                <div style={styles.featureIcon}>{feature.icon}</div>
+                <h3 style={styles.featureTitle}>{feature.title}</h3>
+                <p style={styles.featureDescription}>{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Benefits Section */}
+      <section style={styles.benefits}>
+        <div style={styles.container}>
+          <div style={styles.benefitsContent}>
+            <h2 style={styles.benefitsTitle}>Pourquoi ProspectHub ?</h2>
+            <ul style={styles.benefitsList}>
+              <li style={styles.benefitItem}>
+                <span style={styles.benefitIcon}>✓</span>
+                <span>Interface minimaliste et intuitive</span>
+              </li>
+              <li style={styles.benefitItem}>
+                <span style={styles.benefitIcon}>✓</span>
+                <span>Détection automatique des sites web</span>
+              </li>
+              <li style={styles.benefitItem}>
+                <span style={styles.benefitIcon}>✓</span>
+                <span>Aucune installation requise</span>
+              </li>
+              <li style={styles.benefitItem}>
+                <span style={styles.benefitIcon}>✓</span>
+                <span>Données sécurisées avec Supabase</span>
+              </li>
+              <li style={styles.benefitItem}>
+                <span style={styles.benefitIcon}>✓</span>
+                <span>Gratuit et open source</span>
+              </li>
+            </ul>
+          </div>
+          <div style={styles.benefitsImage}>
+            <div style={styles.benefitsBox}>
+              <div style={styles.benefitsBoxTitle}>Gagnez du temps</div>
+              <div style={styles.benefitsBoxStat}>
+                <span style={styles.benefitsBoxNumber}>75%</span>
+                <span style={styles.benefitsBoxLabel}>plus rapide</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section style={styles.cta}>
+        <div style={styles.container}>
+          <h2 style={styles.ctaTitle}>Prêt à commencer ?</h2>
+          <p style={styles.ctaSubtitle}>
+            Commencez à gérer vos prospects dès maintenant. Aucune carte de crédit requise.
+          </p>
+          <button onClick={() => router.push('/')} style={styles.ctaButton}>
+            Accéder à l'application
+          </button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer style={styles.footer}>
+        <div style={styles.container}>
+          <div style={styles.footerContent}>
+            <div style={styles.footerBrand}>
+              <span style={styles.logoIcon}>📊</span>
+              <span style={styles.logoText}>ProspectHub</span>
+            </div>
+            <p style={styles.footerText}>
+              Gestion professionnelle de prospects
+            </p>
+          </div>
+        </div>
+      </footer>
+    </>
+  );
+}
+
+const styles = {
+  nav: {
+    background: '#ffffff',
+    borderBottom: '1px solid #e5e5e5',
+    padding: '16px 20px',
+    position: 'sticky',
+    top: 0,
+    zIndex: 100,
+  },
+  navContainer: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  logo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  logoIcon: {
+    fontSize: '1.5rem',
+  },
+  logoText: {
+    fontSize: '1.25rem',
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  navButton: {
+    padding: '10px 20px',
+    background: '#1a1a1a',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontWeight: '500',
+    fontSize: '0.95rem',
+  },
+  hero: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '80px 20px',
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '60px',
+    alignItems: 'center',
+  },
+  heroContent: {
+    animationDelay: '0.2s',
+  },
+  heroTitle: {
+    fontSize: '3.5rem',
+    fontWeight: '600',
+    lineHeight: '1.1',
+    marginBottom: '24px',
+    color: '#1a1a1a',
+  },
+  heroAccent: {
+    color: '#666',
+    fontWeight: '400',
+  },
+  heroSubtitle: {
+    fontSize: '1.25rem',
+    color: '#666',
+    marginBottom: '40px',
+    lineHeight: '1.6',
+  },
+  heroButtons: {
+    display: 'flex',
+    gap: '16px',
+    flexWrap: 'wrap',
+  },
+  primaryButton: {
+    padding: '14px 32px',
+    background: '#1a1a1a',
+    color: 'white',
+    border: 'none',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    fontWeight: '500',
+    fontSize: '1rem',
+  },
+  secondaryButton: {
+    padding: '14px 32px',
+    background: 'white',
+    color: '#1a1a1a',
+    border: '1px solid #e5e5e5',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    fontWeight: '500',
+    fontSize: '1rem',
+    textDecoration: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+  },
+  heroImage: {
+    animationDelay: '0.4s',
+  },
+  mockup: {
+    background: '#fafafa',
+    borderRadius: '16px',
+    border: '1px solid #e5e5e5',
+    overflow: 'hidden',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
+  },
+  mockupHeader: {
+    background: '#ffffff',
+    borderBottom: '1px solid #e5e5e5',
+    padding: '12px 16px',
+    display: 'flex',
+    gap: '6px',
+  },
+  mockupDot: {
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    background: '#e5e5e5',
+  },
+  mockupContent: {
+    padding: '24px',
+  },
+  mockupStats: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '12px',
+    marginBottom: '20px',
+  },
+  mockupStatCard: {
+    background: 'white',
+    padding: '16px',
+    borderRadius: '10px',
+    border: '1px solid #e5e5e5',
+    textAlign: 'center',
+  },
+  mockupStatValue: {
+    fontSize: '1.5rem',
+    fontWeight: '600',
+    marginBottom: '4px',
+  },
+  mockupStatLabel: {
+    fontSize: '0.75rem',
+    color: '#666',
+  },
+  mockupSearch: {
+    background: 'white',
+    border: '1px solid #e5e5e5',
+    borderRadius: '8px',
+    padding: '12px 16px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  mockupSearchIcon: {
+    fontSize: '1rem',
+    opacity: 0.5,
+  },
+  mockupSearchText: {
+    color: '#999',
+    fontSize: '0.9rem',
+  },
+  features: {
+    background: '#fafafa',
+    padding: '100px 20px',
+  },
+  container: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+  },
+  sectionTitle: {
+    fontSize: '2.5rem',
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: '60px',
+    color: '#1a1a1a',
+  },
+  featuresGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '32px',
+  },
+  featureCard: {
+    background: 'white',
+    padding: '32px',
+    borderRadius: '12px',
+    border: '1px solid #e5e5e5',
+  },
+  featureIcon: {
+    fontSize: '2.5rem',
+    marginBottom: '16px',
+  },
+  featureTitle: {
+    fontSize: '1.25rem',
+    fontWeight: '600',
+    marginBottom: '12px',
+    color: '#1a1a1a',
+  },
+  featureDescription: {
+    fontSize: '0.95rem',
+    color: '#666',
+    lineHeight: '1.6',
+  },
+  benefits: {
+    padding: '100px 20px',
+  },
+  benefitsContent: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '60px',
+    alignItems: 'center',
+  },
+  benefitsTitle: {
+    fontSize: '2.5rem',
+    fontWeight: '600',
+    marginBottom: '32px',
+    color: '#1a1a1a',
+  },
+  benefitsList: {
+    listStyle: 'none',
+  },
+  benefitItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    marginBottom: '20px',
+    fontSize: '1.1rem',
+    color: '#333',
+  },
+  benefitIcon: {
+    fontSize: '1.2rem',
+    color: '#1a1a1a',
+    fontWeight: '600',
+  },
+  benefitsImage: {
+    display: 'flex',
+    justifyContent: 'center',
+  },
+  benefitsBox: {
+    background: '#1a1a1a',
+    color: 'white',
+    padding: '48px',
+    borderRadius: '16px',
+    textAlign: 'center',
+    minWidth: '280px',
+  },
+  benefitsBoxTitle: {
+    fontSize: '1.1rem',
+    marginBottom: '24px',
+    opacity: 0.9,
+  },
+  benefitsBoxStat: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  benefitsBoxNumber: {
+    fontSize: '4rem',
+    fontWeight: '600',
+  },
+  benefitsBoxLabel: {
+    fontSize: '1.2rem',
+    opacity: 0.8,
+  },
+  cta: {
+    background: '#1a1a1a',
+    color: 'white',
+    padding: '100px 20px',
+    textAlign: 'center',
+  },
+  ctaTitle: {
+    fontSize: '2.5rem',
+    fontWeight: '600',
+    marginBottom: '16px',
+  },
+  ctaSubtitle: {
+    fontSize: '1.2rem',
+    opacity: 0.9,
+    marginBottom: '40px',
+  },
+  ctaButton: {
+    padding: '16px 48px',
+    background: 'white',
+    color: '#1a1a1a',
+    border: 'none',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '1.1rem',
+  },
+  footer: {
+    background: '#fafafa',
+    borderTop: '1px solid #e5e5e5',
+    padding: '40px 20px',
+  },
+  footerContent: {
+    textAlign: 'center',
+  },
+  footerBrand: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    justifyContent: 'center',
+    marginBottom: '12px',
+  },
+  footerText: {
+    color: '#666',
+    fontSize: '0.9rem',
+  },
+};

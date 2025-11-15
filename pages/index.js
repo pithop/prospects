@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 
 export default function Home() {
+  const router = useRouter();
   const [prospects, setProspects] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
@@ -419,10 +421,18 @@ export default function Home() {
               <h1 style={styles.title}>📊 ProspectHub</h1>
               <p style={styles.subtitle}>Gestion professionnelle de vos prospects</p>
             </div>
-            <div style={styles.keyboardHints}>
-              <div style={styles.hint}>⌘K Rechercher</div>
-              <div style={styles.hint}>⌘N Nouveau</div>
-              <div style={styles.hint}>⌘I Importer</div>
+            <div style={styles.headerActions}>
+              <button onClick={() => router.push('/dashboard')} style={styles.dashboardBtn} title="Dashboard Analytics">
+                📊 Dashboard
+              </button>
+              <button onClick={() => router.push('/landing')} style={styles.landingBtn} title="Landing Page">
+                🏠 Landing
+              </button>
+              <div style={styles.keyboardHints}>
+                <div style={styles.hint}>⌘K Rechercher</div>
+                <div style={styles.hint}>⌘N Nouveau</div>
+                <div style={styles.hint}>⌘I Importer</div>
+              </div>
             </div>
           </div>
         </div>
@@ -779,6 +789,32 @@ const styles = {
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: '20px',
+  },
+  headerActions: {
+    display: 'flex',
+    gap: '12px',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  dashboardBtn: {
+    padding: '8px 16px',
+    background: '#1a1a1a',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontWeight: '500',
+    fontSize: '0.85rem',
+  },
+  landingBtn: {
+    padding: '8px 16px',
+    background: 'white',
+    color: '#1a1a1a',
+    border: '1px solid #e5e5e5',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontWeight: '500',
+    fontSize: '0.85rem',
   },
   keyboardHints: {
     display: 'flex',
