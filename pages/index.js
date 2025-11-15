@@ -15,6 +15,7 @@ export default function Home() {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
   const [sortBy, setSortBy] = useState('name'); // 'name', 'city', 'rating', 'date'
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc' or 'desc'
+  const [selectedCity, setSelectedCity] = useState(''); // For city filter
 
   const [newProspect, setNewProspect] = useState({
     name: '',
@@ -35,6 +36,35 @@ export default function Home() {
 
   useEffect(() => {
     loadData();
+    
+    // Keyboard shortcuts
+    const handleKeyPress = (e) => {
+      // Cmd/Ctrl + K for search focus
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        document.querySelector('input[placeholder*="Rechercher"]')?.focus();
+      }
+      // Cmd/Ctrl + N for new prospect
+      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+        e.preventDefault();
+        setShowAddForm(true);
+        setShowImportForm(false);
+      }
+      // Cmd/Ctrl + I for import
+      if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
+        e.preventDefault();
+        setShowImportForm(true);
+        setShowAddForm(false);
+      }
+      // Escape to close forms
+      if (e.key === 'Escape') {
+        setShowAddForm(false);
+        setShowImportForm(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
   }, []);
 
   const loadData = async () => {
@@ -194,6 +224,42 @@ export default function Home() {
     }
   };
 
+  const handleExportCSV = () => {
+    if (filteredProspects.length === 0) {
+      showMessage('Aucune donnée à exporter', 'error');
+      return;
+    }
+
+    const headers = ['Nom', 'Téléphone', 'Ville', 'Site Web', 'Catégorie', 'Note', 'Statut', 'Contacté'];
+    const csvData = filteredProspects.map(p => [
+      p.name || '',
+      p.phone || '',
+      p.city || '',
+      p.website || '',
+      p.category || '',
+      p.rating || 0,
+      p.is_prospect_to_contact ? 'À contacter' : (p.has_website ? 'Site web' : 'Autre'),
+      p.contacted ? 'Oui' : 'Non'
+    ]);
+
+    const csv = [
+      headers.join(','),
+      ...csvData.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `prospects_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showMessage(`${filteredProspects.length} prospects exportés ✅`);
+  };
+
   // Get unique cities for filter dropdown
   const uniqueCities = useMemo(() => {
     const cities = Array.isArray(prospects) 
@@ -214,6 +280,11 @@ export default function Home() {
         if (!p.has_website) return false;
       } else if (filter === 'contactes') {
         if (!p.contacted) return false;
+      }
+
+      // City filter
+      if (selectedCity && p.city !== selectedCity) {
+        return false;
       }
 
       // Search filter
@@ -347,6 +418,11 @@ export default function Home() {
               <h1 style={styles.title}>📊 ProspectHub</h1>
               <p style={styles.subtitle}>Gestion professionnelle de vos prospects</p>
             </div>
+            <div style={styles.keyboardHints}>
+              <div style={styles.hint}>⌘K Rechercher</div>
+              <div style={styles.hint}>⌘N Nouveau</div>
+              <div style={styles.hint}>⌘I Importer</div>
+            </div>
           </div>
         </div>
       </header>
@@ -399,6 +475,18 @@ export default function Home() {
               </button>
             )}
           </div>
+          {uniqueCities.length > 0 && (
+            <select
+              value={selectedCity}
+              onChange={(e) => setSelectedCity(e.target.value)}
+              style={styles.cityFilter}
+            >
+              <option value="">Toutes les villes</option>
+              {uniqueCities.map(city => (
+                <option key={city} value={city}>{city}</option>
+              ))}
+            </select>
+          )}
           <div style={styles.actionButtonsCompact}>
             <button style={styles.primaryBtn} onClick={() => { setShowAddForm(!showAddForm); setShowImportForm(false); }}>
               ➕ Ajouter
@@ -406,6 +494,11 @@ export default function Home() {
             <button style={styles.secondaryBtn} onClick={() => { setShowImportForm(!showImportForm); setShowAddForm(false); }}>
               📥 Importer
             </button>
+            {filteredProspects.length > 0 && (
+              <button style={styles.exportBtn} onClick={handleExportCSV} title="Exporter en CSV">
+                📊 Exporter
+              </button>
+            )}
           </div>
         </div>
 
@@ -683,6 +776,21 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '20px',
+  },
+  keyboardHints: {
+    display: 'flex',
+    gap: '12px',
+    flexWrap: 'wrap',
+  },
+  hint: {
+    background: 'rgba(255,255,255,0.2)',
+    padding: '6px 12px',
+    borderRadius: '8px',
+    fontSize: '0.85rem',
+    fontWeight: '500',
+    backdropFilter: 'blur(10px)',
   },
   container: { 
     maxWidth: '1400px', 
@@ -816,6 +924,28 @@ const styles = {
     display: 'flex',
     gap: '12px',
     flexWrap: 'wrap',
+  },
+  cityFilter: {
+    padding: '12px 16px',
+    border: '2px solid #e0e0e0',
+    borderRadius: '12px',
+    fontSize: '0.95rem',
+    fontFamily: 'inherit',
+    cursor: 'pointer',
+    background: 'white',
+    fontWeight: '500',
+    minWidth: '180px',
+  },
+  exportBtn: {
+    padding: '12px 24px',
+    background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '0.95rem',
+    boxShadow: '0 4px 12px rgba(17, 153, 142, 0.3)',
   },
   controlsBar: {
     display: 'flex',
