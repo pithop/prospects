@@ -1,16 +1,41 @@
 # 📊 ProspectHub
 
-Une application simple et efficace pour gérer vos prospects commerciaux. Identifiez rapidement qui contacter, suivez vos interactions, et gérez votre portefeuille de clients.
+Une application **professionnelle** et **moderne** pour gérer vos prospects commerciaux. Design Apple-inspired, recherche avancée, et expérience utilisateur exceptionnelle.
 
 ## ✨ Fonctionnalités
 
-- **Gestion des Prospects**: Ajoutez, modifiez et supprimez vos prospects
-- **Import JSON**: Importez en masse vos données depuis un fichier JSON
-- **Détection Intelligente**: Détecte automatiquement les sites web réels vs les réseaux sociaux
-- **Filtrage Avancé**: Filtrez par catégorie, état de contact, présence de site web
-- **Statistiques en Temps Réel**: Suivez le nombre de prospects à contacter, contactés, etc.
-- **Design Moderne**: Interface épurée et responsive
-- **100% Français**: Entièrement en français
+### Gestion des Prospects
+- **Ajout/Modification/Suppression** de prospects
+- **Import JSON** en masse
+- **Export CSV** des prospects filtrés
+- **Détection Intelligente** des sites web vs réseaux sociaux
+
+### Recherche et Filtrage Avancés
+- **🔍 Recherche Globale**: Recherche en temps réel sur tous les champs
+- **📍 Filtre par Ville**: Sélecteur de ville dédié
+- **🎯 Filtres Catégories**: À contacter, Site web, Contactés
+- **📊 Tri Multi-critères**: Par nom, ville, note, ou date
+- **↕️ Ordre Personnalisable**: Croissant ou décroissant
+
+### Interface Moderne
+- **🎨 Design Apple-inspired**: Gradients professionnels et animations fluides
+- **📱 100% Responsive**: Parfait sur mobile, tablette et desktop
+- **▦ Deux Modes d'Affichage**: Vue grille (cartes) ou vue tableau
+- **⌨️ Raccourcis Clavier**: Navigation rapide pour utilisateurs avancés
+- **🇫🇷 100% Français**: Interface entièrement en français
+
+### Statistiques en Temps Réel
+- Total prospects
+- À contacter (priorité!)
+- Avec site web
+- Contactés
+
+## ⌨️ Raccourcis Clavier
+
+- **⌘K / Ctrl+K** → Rechercher
+- **⌘N / Ctrl+N** → Nouveau prospect
+- **⌘I / Ctrl+I** → Importer
+- **ESC** → Fermer les formulaires
 
 ## 🚀 Démarrage Rapide
 
@@ -237,3 +262,42 @@ MIT - Libre d'utilisation
 **Besoin d'aide? Consultez [supabase_setup.sql](./supabase_setup.sql) pour l'installation Supabase.**
 
 **Prêt à déployer? 🚀 C'est parti sur Vercel!**
+
+## 🆕 Nouvelles Fonctionnalités (v2.0)
+
+### Recherche Avancée
+- **Recherche Globale**: Tapez n'importe quoi pour rechercher dans tous les champs
+- **Filtre par Ville**: Sélecteur dédié pour filtrer par localisation
+- **Résultats en Temps Réel**: Mise à jour instantanée pendant la saisie
+- **Compteur de Résultats**: Affiche le nombre de correspondances
+
+### Raccourcis Clavier
+Gagnez du temps avec ces raccourcis:
+- `⌘K` ou `Ctrl+K` - Focus sur la recherche
+- `⌘N` ou `Ctrl+N` - Nouveau prospect
+- `⌘I` ou `Ctrl+I` - Importer des données
+- `ESC` - Fermer les formulaires
+
+### Export de Données
+- **Export CSV**: Exportez vos prospects filtrés en un clic
+- **Format Standard**: Compatible avec Excel, Google Sheets, etc.
+- **Nom Auto**: Fichier daté automatiquement (ex: prospects_2025-11-15.csv)
+
+### Affichage Multi-modes
+- **Vue Grille (▦)**: Cartes modernes avec toutes les informations
+- **Vue Tableau (☰)**: Tableau traditionnel compact
+- Basculez facilement entre les deux modes
+
+### Tri Avancé
+Triez vos prospects par:
+- Nom (A-Z ou Z-A)
+- Ville (A-Z ou Z-A) 
+- Note (0-5 ou 5-0)
+- Date (récent/ancien)
+
+### Design Amélioré
+- **Gradients Modernes**: Cartes avec dégradés professionnels
+- **Animations Fluides**: Transitions douces et élégantes
+- **Responsive**: Parfait sur mobile, tablette et desktop
+- **Thème Apple**: Design inspiré des meilleures applications
+
