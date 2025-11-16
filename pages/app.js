@@ -3,6 +3,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Header from '../components/Header';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
+import KanbanView from '../components/KanbanView';
 
 export default function Home() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function Home() {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
+  const [viewMode, setViewMode] = useState('grid'); // 'grid', 'table', or 'kanban'
   const [sortBy, setSortBy] = useState('smart'); // 'smart', 'name', 'city', 'rating', 'date'
   const [sortOrder, setSortOrder] = useState('desc'); // 'asc' or 'desc'
   const [selectedCity, setSelectedCity] = useState(''); // For city filter
@@ -246,6 +247,34 @@ export default function Home() {
       loadData(); // Refresh data
     } catch (error) {
       showMessage('Erreur lors de la suppression', 'error');
+    }
+  };
+
+  // Handle status change from Kanban view
+  const handleStatusChange = async (prospectId, newStatus) => {
+    try {
+      // Prepare update data
+      const updateData = {
+        id: prospectId,
+        status: newStatus
+      };
+
+      // Bonus: If status is "Contacté", also update contacted and contact_date
+      if (newStatus === 'Contacté') {
+        updateData.contacted = true;
+        updateData.contact_date = new Date().toISOString();
+      }
+
+      await fetch('/api/prospects', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+      });
+      
+      showMessage(`Statut mis à jour: ${newStatus} ✅`);
+      loadData(); // Refresh data to reflect changes
+    } catch (error) {
+      showMessage('Erreur lors de la mise à jour du statut', 'error');
     }
   };
 
@@ -663,6 +692,13 @@ export default function Home() {
               >
                 ☰
               </button>
+              <button 
+                onClick={() => setViewMode('kanban')}
+                style={{ ...styles.viewModeBtn, ...(viewMode === 'kanban' ? styles.viewModeBtnActive : {}) }}
+                title="Vue pipeline (Kanban)"
+              >
+                📊
+              </button>
             </div>
           </div>
         </div>
@@ -803,7 +839,7 @@ export default function Home() {
               </div>
             ))}
           </div>
-        ) : (
+        ) : viewMode === 'table' ? (
           <div style={styles.tableWrapper}>
             <table style={styles.table}>
               <thead>
@@ -848,10 +884,16 @@ export default function Home() {
               </tbody>
             </table>
           </div>
+        ) : (
+          /* Kanban View */
+          <KanbanView
+            prospects={filteredProspects}
+            onStatusChange={handleStatusChange}
+          />
         )}
 
-        {/* Pagination */}
-        {filteredProspects.length > itemsPerPage && (
+        {/* Pagination - Only show for grid and table views */}
+        {viewMode !== 'kanban' && filteredProspects.length > itemsPerPage && (
           <div style={styles.paginationContainer}>
             <div style={styles.paginationInfo}>
               Affichage de {((currentPage - 1) * itemsPerPage) + 1} à {Math.min(currentPage * itemsPerPage, filteredProspects.length)} sur {filteredProspects.length} prospects
