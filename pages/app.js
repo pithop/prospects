@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Header from '../components/Header';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 
 export default function Home() {
   const router = useRouter();
@@ -21,6 +22,10 @@ export default function Home() {
   const [selectedCity, setSelectedCity] = useState(''); // For city filter
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
+  
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [prospectToDelete, setProspectToDelete] = useState(null);
 
   const [newProspect, setNewProspect] = useState({
     name: '',
@@ -205,27 +210,42 @@ export default function Home() {
       await fetch('/api/prospects', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, contacted: true, contact_date: new Date().toISOString(), status: 'contacté' })
+        body: JSON.stringify({ 
+          id, 
+          contacted: true, 
+          contact_date: new Date().toISOString(), 
+          status: 'Contacté'  // Using capitalized status to match Kanban column
+        })
       });
       showMessage('Marqué comme contacté ✅');
-      loadData();
+      loadData(); // Refresh data to reflect changes
     } catch (error) {
-      showMessage('Erreur', 'error');
+      showMessage('Erreur lors de la mise à jour', 'error');
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Êtes-vous sûr?')) return;
+  // Open delete confirmation modal
+  const handleDelete = (prospect) => {
+    setProspectToDelete(prospect);
+    setShowDeleteModal(true);
+  };
+
+  // Actual delete after modal confirmation
+  const handleConfirmDelete = async () => {
+    if (!prospectToDelete) return;
+    
     try {
       await fetch('/api/prospects', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
+        body: JSON.stringify({ id: prospectToDelete.id })
       });
       showMessage('Prospect supprimé ✅');
-      loadData();
+      setShowDeleteModal(false);
+      setProspectToDelete(null);
+      loadData(); // Refresh data
     } catch (error) {
-      showMessage('Erreur', 'error');
+      showMessage('Erreur lors de la suppression', 'error');
     }
   };
 
@@ -775,7 +795,7 @@ export default function Home() {
                         ✓
                       </button>
                     )}
-                    <button onClick={() => handleDelete(p.id)} style={styles.actionBtnDelete} title="Supprimer">
+                    <button onClick={() => handleDelete(p)} style={styles.actionBtnDelete} title="Supprimer">
                       ✕
                     </button>
                   </div>
@@ -820,7 +840,7 @@ export default function Home() {
                     <td style={{ padding: '16px 12px' }}>
                       <div style={{ display: 'flex', gap: '6px' }}>
                         {!p.contacted && p.is_prospect_to_contact && <button onClick={() => handleMarkContacted(p.id)} style={styles.actionBtnContact} title="Marquer comme contacté">✓</button>}
-                        <button onClick={() => handleDelete(p.id)} style={styles.actionBtnDelete} title="Supprimer">✕</button>
+                        <button onClick={() => handleDelete(p)} style={styles.actionBtnDelete} title="Supprimer">✕</button>
                       </div>
                     </td>
                   </tr>
@@ -913,6 +933,17 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setProspectToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        prospectName={prospectToDelete?.name || ''}
+      />
     </>
   );
 }
