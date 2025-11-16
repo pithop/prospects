@@ -72,30 +72,12 @@ export default function Landing() {
           </div>
         </div>
         <div style={styles.heroImage} className="slide-up">
-          <div style={styles.mockup}>
-            <div style={styles.mockupHeader}>
-              <div style={styles.mockupDot}></div>
-              <div style={styles.mockupDot}></div>
-              <div style={styles.mockupDot}></div>
-            </div>
-            <div style={styles.mockupContent}>
-              <div style={styles.mockupStats}>
-                {[
-                  { label: 'Total', value: '127', color: '#1a1a1a' },
-                  { label: 'À Contacter', value: '45', color: '#dc2626' },
-                  { label: 'Contactés', value: '82', color: '#16a34a' },
-                ].map((stat, i) => (
-                  <div key={i} style={styles.mockupStatCard}>
-                    <div style={{ ...styles.mockupStatValue, color: stat.color }}>{stat.value}</div>
-                    <div style={styles.mockupStatLabel}>{stat.label}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={styles.mockupSearch}>
-                <span style={styles.mockupSearchIcon}>🔍</span>
-                <span style={styles.mockupSearchText}>Rechercher...</span>
-              </div>
-            </div>
+          <div style={styles.screenshotContainer}>
+            <img 
+              src="https://github.com/user-attachments/assets/9c3830bb-739a-43e7-b90e-d6cfd3f3f395" 
+              alt="Dashboard ProspectHub - Interface professionnelle de gestion de prospects"
+              style={styles.screenshot}
+            />
           </div>
         </div>
       </section>
@@ -287,67 +269,16 @@ const styles = {
   heroImage: {
     animationDelay: '0.4s',
   },
-  mockup: {
-    background: '#fafafa',
-    borderRadius: '16px',
-    border: '1px solid #e5e5e5',
+  screenshotContainer: {
+    borderRadius: '12px',
     overflow: 'hidden',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
-  },
-  mockupHeader: {
-    background: '#ffffff',
-    borderBottom: '1px solid #e5e5e5',
-    padding: '12px 16px',
-    display: 'flex',
-    gap: '6px',
-  },
-  mockupDot: {
-    width: '10px',
-    height: '10px',
-    borderRadius: '50%',
-    background: '#e5e5e5',
-  },
-  mockupContent: {
-    padding: '24px',
-  },
-  mockupStats: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '12px',
-    marginBottom: '20px',
-  },
-  mockupStatCard: {
-    background: 'white',
-    padding: '16px',
-    borderRadius: '10px',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
     border: '1px solid #e5e5e5',
-    textAlign: 'center',
   },
-  mockupStatValue: {
-    fontSize: '1.5rem',
-    fontWeight: '600',
-    marginBottom: '4px',
-  },
-  mockupStatLabel: {
-    fontSize: '0.75rem',
-    color: '#666',
-  },
-  mockupSearch: {
-    background: 'white',
-    border: '1px solid #e5e5e5',
-    borderRadius: '8px',
-    padding: '12px 16px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-  },
-  mockupSearchIcon: {
-    fontSize: '1rem',
-    opacity: 0.5,
-  },
-  mockupSearchText: {
-    color: '#999',
-    fontSize: '0.9rem',
+  screenshot: {
+    width: '100%',
+    height: 'auto',
+    display: 'block',
   },
   features: {
     background: '#fafafa',
