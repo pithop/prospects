@@ -54,7 +54,7 @@ export default function Landing() {
             <span style={styles.logoIcon}>📊</span>
             <span style={styles.logoText}>ProspectHub</span>
           </div>
-          <button onClick={() => router.push('/')} style={styles.navButton}>
+          <button onClick={() => router.push('/app')} style={styles.navButton}>
             Ouvrir l'application →
           </button>
         </div>
@@ -72,7 +72,7 @@ export default function Landing() {
             Une solution minimaliste et moderne pour organiser, rechercher et contacter vos prospects professionnels.
           </p>
           <div style={styles.heroButtons}>
-            <button onClick={() => router.push('/')} style={styles.primaryButton}>
+            <button onClick={() => router.push('/app')} style={styles.primaryButton}>
               Commencer gratuitement
             </button>
             <a href="#features" style={styles.secondaryButton}>
@@ -203,7 +203,7 @@ export default function Landing() {
           <p style={styles.ctaSubtitle}>
             Commencez à gérer vos prospects dès maintenant. Aucune carte de crédit requise.
           </p>
-          <button onClick={() => router.push('/')} style={styles.ctaButton}>
+          <button onClick={() => router.push('/app')} style={styles.ctaButton}>
             Accéder à l'application
           </button>
         </div>

@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, LineElement, PointElement, Title, Tooltip, Legend } from 'chart.js';
+import { Bar, Pie, Line } from 'react-chartjs-2';
+
+// Register Chart.js components
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, LineElement, PointElement, Title, Tooltip, Legend);
 
 export default function Dashboard() {
   const router = useRouter();
   const [stats, setStats] = useState({});
   const [prospects, setProspects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showCharts, setShowCharts] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -71,6 +77,62 @@ export default function Dashboard() {
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5);
 
+  // Chart data
+  const statusChartData = {
+    labels: ['Contactés', 'À Contacter', 'Avec Site Web', 'Autres'],
+    datasets: [{
+      label: 'Prospects par statut',
+      data: [
+        stats.contactes || 0,
+        (stats.prospectContacter || 0) - (stats.contactes || 0),
+        stats.avecSiteWeb || 0,
+        (stats.total || 0) - (stats.contactes || 0) - ((stats.prospectContacter || 0) - (stats.contactes || 0)) - (stats.avecSiteWeb || 0)
+      ],
+      backgroundColor: ['#16a34a', '#dc2626', '#3b82f6', '#9ca3af'],
+      borderWidth: 0,
+    }]
+  };
+
+  const cityChartData = {
+    labels: topCities.map(([city]) => city),
+    datasets: [{
+      label: 'Prospects par ville',
+      data: topCities.map(([, count]) => count),
+      backgroundColor: '#1a1a1a',
+      borderWidth: 0,
+    }]
+  };
+
+  const activityChartData = {
+    labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+    datasets: [{
+      label: 'Activité cette semaine',
+      data: (() => {
+        const weekData = [0, 0, 0, 0, 0, 0, 0];
+        prospects.forEach(p => {
+          const created = new Date(p.created_at);
+          const dayOfWeek = created.getDay();
+          weekData[dayOfWeek === 0 ? 6 : dayOfWeek - 1]++;
+        });
+        return weekData;
+      })(),
+      borderColor: '#1a1a1a',
+      backgroundColor: 'rgba(26, 26, 26, 0.1)',
+      tension: 0.4,
+    }]
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'bottom',
+      },
+    },
+  };
+
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
@@ -107,14 +169,51 @@ export default function Dashboard() {
               <h1 style={styles.title}>📊 Dashboard Analytics</h1>
               <p style={styles.subtitle}>Vue d'ensemble de vos performances</p>
             </div>
-            <button onClick={() => router.push('/')} style={styles.backButton}>
-              ← Retour à l'application
-            </button>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                onClick={() => setShowCharts(!showCharts)} 
+                style={{...styles.backButton, background: showCharts ? '#1a1a1a' : 'white', color: showCharts ? 'white' : '#1a1a1a'}}
+              >
+                {showCharts ? '📊 Masquer les graphiques' : '📈 Afficher les graphiques'}
+              </button>
+              <button onClick={() => router.push('/app')} style={styles.backButton}>
+                ← Retour à l'application
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       <main style={styles.container}>
+        {/* Charts Section - Toggle */}
+        {showCharts && (
+          <div style={styles.chartsSection}>
+            <h2 style={styles.sectionTitle}>📊 Graphiques de données</h2>
+            <div style={styles.chartsGrid}>
+              <div style={styles.chartCard}>
+                <h3 style={styles.chartTitle}>Répartition par statut</h3>
+                <div style={styles.chartContainer}>
+                  <Pie data={statusChartData} options={chartOptions} />
+                </div>
+              </div>
+
+              <div style={styles.chartCard}>
+                <h3 style={styles.chartTitle}>Top villes</h3>
+                <div style={styles.chartContainer}>
+                  <Bar data={cityChartData} options={chartOptions} />
+                </div>
+              </div>
+
+              <div style={styles.chartCard} style={{...styles.chartCard, gridColumn: '1 / -1'}}>
+                <h3 style={styles.chartTitle}>Activité hebdomadaire</h3>
+                <div style={styles.chartContainer}>
+                  <Line data={activityChartData} options={chartOptions} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Key Metrics */}
         <div style={styles.metricsGrid}>
           <div style={styles.metricCard}>
@@ -260,15 +359,15 @@ export default function Dashboard() {
         <div style={styles.actionsCard}>
           <h3 style={styles.actionsTitle}>Actions rapides</h3>
           <div style={styles.actionsGrid}>
-            <button onClick={() => router.push('/')} style={styles.actionButton}>
+            <button onClick={() => router.push('/app')} style={styles.actionButton}>
               <span style={styles.actionIcon}>➕</span>
               <span>Ajouter un prospect</span>
             </button>
-            <button onClick={() => router.push('/')} style={styles.actionButton}>
+            <button onClick={() => router.push('/app')} style={styles.actionButton}>
               <span style={styles.actionIcon}>📥</span>
               <span>Importer des données</span>
             </button>
-            <button onClick={() => router.push('/')} style={styles.actionButton}>
+            <button onClick={() => router.push('/app')} style={styles.actionButton}>
               <span style={styles.actionIcon}>📊</span>
               <span>Exporter le rapport</span>
             </button>
@@ -312,6 +411,24 @@ const styles = {
     maxWidth: '1400px',
     margin: '0 auto',
     padding: '30px 20px',
+  },
+  sectionTitle: {
+    fontSize: '1.5rem',
+    fontWeight: '600',
+    marginBottom: '24px',
+    color: '#1a1a1a',
+  },
+  chartsSection: {
+    marginBottom: '40px',
+  },
+  chartsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+    gap: '20px',
+  },
+  chartContainer: {
+    height: '300px',
+    position: 'relative',
   },
   title: {
     fontSize: '1.75rem',

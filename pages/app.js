@@ -15,9 +15,11 @@ export default function Home() {
   const [messageType, setMessageType] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
-  const [sortBy, setSortBy] = useState('name'); // 'name', 'city', 'rating', 'date'
-  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' or 'desc'
+  const [sortBy, setSortBy] = useState('smart'); // 'smart', 'name', 'city', 'rating', 'date'
+  const [sortOrder, setSortOrder] = useState('desc'); // 'asc' or 'desc'
   const [selectedCity, setSelectedCity] = useState(''); // For city filter
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
 
   const [newProspect, setNewProspect] = useState({
     name: '',
@@ -233,7 +235,7 @@ export default function Home() {
     }
 
     const headers = ['Nom', 'Téléphone', 'Ville', 'Site Web', 'Catégorie', 'Note', 'Statut', 'Contacté'];
-    const csvData = filteredProspects.map(p => [
+    const csvData = paginatedProspects.map(p => [
       p.name || '',
       p.phone || '',
       p.city || '',
@@ -272,7 +274,54 @@ export default function Home() {
 
   const safeProspects = Array.isArray(prospects) ? prospects : [];
   
-  // Advanced filtering with search
+  // Intelligent ranking algorithm
+  const calculateProspectScore = (prospect) => {
+    let score = 0;
+    
+    // Priority 1: Not contacted and to contact (HIGH VALUE)
+    if (prospect.is_prospect_to_contact && !prospect.contacted) {
+      score += 100;
+    }
+    
+    // Priority 2: Has high rating (quality indicator)
+    if (prospect.rating) {
+      score += prospect.rating * 10; // 0-50 points
+    }
+    
+    // Priority 3: Has reviews (engagement indicator)
+    if (prospect.reviews) {
+      score += Math.min(prospect.reviews, 20); // Cap at 20 points
+    }
+    
+    // Priority 4: No website = easier to approach
+    if (!prospect.has_website && !prospect.is_third_party) {
+      score += 30;
+    }
+    
+    // Priority 5: Has phone number (contactable)
+    if (prospect.phone) {
+      score += 20;
+    }
+    
+    // Priority 6: Recently added (fresher data)
+    if (prospect.created_at) {
+      const daysSinceCreation = (Date.now() - new Date(prospect.created_at).getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSinceCreation < 7) {
+        score += 15;
+      } else if (daysSinceCreation < 30) {
+        score += 10;
+      }
+    }
+    
+    // Penalty: Already contacted
+    if (prospect.contacted) {
+      score -= 50;
+    }
+    
+    return score;
+  };
+
+  // Advanced filtering with search and intelligent ranking
   const filteredProspects = useMemo(() => {
     let filtered = safeProspects.filter(p => {
       // Category filter
@@ -310,6 +359,11 @@ export default function Home() {
       let aVal, bVal;
       
       switch (sortBy) {
+        case 'smart':
+          // Intelligent ranking
+          aVal = calculateProspectScore(a);
+          bVal = calculateProspectScore(b);
+          break;
         case 'name':
           aVal = a.name?.toLowerCase() || '';
           bVal = b.name?.toLowerCase() || '';
@@ -327,8 +381,8 @@ export default function Home() {
           bVal = new Date(b.created_at || 0).getTime();
           break;
         default:
-          aVal = a.name?.toLowerCase() || '';
-          bVal = b.name?.toLowerCase() || '';
+          aVal = calculateProspectScore(a);
+          bVal = calculateProspectScore(b);
       }
 
       if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
@@ -337,7 +391,20 @@ export default function Home() {
     });
 
     return filtered;
-  }, [safeProspects, filter, searchQuery, sortBy, sortOrder]);
+  }, [safeProspects, filter, searchQuery, sortBy, sortOrder, selectedCity]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredProspects.length / itemsPerPage);
+  const paginatedProspects = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredProspects.slice(startIndex, endIndex);
+  }, [filteredProspects, currentPage, itemsPerPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, searchQuery, selectedCity, sortBy]);
 
   if (loading) {
     return (
@@ -412,6 +479,38 @@ export default function Home() {
         button:active {
           transform: scale(0.98);
         }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+          body {
+            font-size: 14px;
+          }
+          
+          h1 {
+            font-size: 1.5rem !important;
+          }
+          
+          h2 {
+            font-size: 1.25rem !important;
+          }
+          
+          h3 {
+            font-size: 1.1rem !important;
+          }
+          
+          /* Stack buttons vertically on mobile */
+          button {
+            min-width: 44px !important;
+            min-height: 44px !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          /* Extra small screens */
+          .card-hover:hover {
+            transform: none;
+          }
+        }
       `}</style>
 
       <header style={styles.header}>
@@ -425,7 +524,7 @@ export default function Home() {
               <button onClick={() => router.push('/dashboard')} style={styles.dashboardBtn} title="Dashboard Analytics">
                 📊 Dashboard
               </button>
-              <button onClick={() => router.push('/landing')} style={styles.landingBtn} title="Landing Page">
+              <button onClick={() => router.push('/')} style={styles.landingBtn} title="Landing Page">
                 🏠 Landing
               </button>
               <div style={styles.keyboardHints}>
@@ -536,6 +635,7 @@ export default function Home() {
               onChange={(e) => setSortBy(e.target.value)}
               style={styles.sortSelect}
             >
+              <option value="smart">🎯 Tri intelligent (recommandé)</option>
               <option value="name">Trier par nom</option>
               <option value="city">Trier par ville</option>
               <option value="rating">Trier par note</option>
@@ -631,7 +731,7 @@ export default function Home() {
           </div>
         ) : viewMode === 'grid' ? (
           <div style={styles.gridView}>
-            {filteredProspects.map((p) => (
+            {paginatedProspects.map((p) => (
               <div key={p.id} style={styles.prospectCard} className="card-hover">
                 <div style={styles.cardHeader}>
                   <h3 style={styles.cardTitle}>{p.name}</h3>
@@ -719,7 +819,7 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody>
-                {filteredProspects.map((p) => (
+                {paginatedProspects.map((p) => (
                   <tr key={p.id} style={styles.tableRow}>
                     <td style={{ padding: '16px 12px', fontWeight: '600' }}>
                       {p.name}
@@ -747,6 +847,89 @@ export default function Home() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {filteredProspects.length > itemsPerPage && (
+          <div style={styles.paginationContainer}>
+            <div style={styles.paginationInfo}>
+              Affichage de {((currentPage - 1) * itemsPerPage) + 1} à {Math.min(currentPage * itemsPerPage, filteredProspects.length)} sur {filteredProspects.length} prospects
+            </div>
+            
+            <div style={styles.paginationControls}>
+              <button 
+                onClick={() => setCurrentPage(1)} 
+                disabled={currentPage === 1}
+                style={{...styles.paginationBtn, ...(currentPage === 1 && styles.paginationBtnDisabled)}}
+              >
+                ⏮ Première
+              </button>
+              <button 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                disabled={currentPage === 1}
+                style={{...styles.paginationBtn, ...(currentPage === 1 && styles.paginationBtnDisabled)}}
+              >
+                ← Précédent
+              </button>
+              
+              <div style={styles.paginationPages}>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      style={{
+                        ...styles.paginationBtn,
+                        ...(currentPage === pageNum && styles.paginationBtnActive)
+                      }}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <button 
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                disabled={currentPage === totalPages}
+                style={{...styles.paginationBtn, ...(currentPage === totalPages && styles.paginationBtnDisabled)}}
+              >
+                Suivant →
+              </button>
+              <button 
+                onClick={() => setCurrentPage(totalPages)} 
+                disabled={currentPage === totalPages}
+                style={{...styles.paginationBtn, ...(currentPage === totalPages && styles.paginationBtnDisabled)}}
+              >
+                Dernière ⏭
+              </button>
+            </div>
+
+            <select 
+              value={itemsPerPage} 
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              style={styles.itemsPerPageSelect}
+            >
+              <option value="12">12 par page</option>
+              <option value="24">24 par page</option>
+              <option value="48">48 par page</option>
+              <option value="100">100 par page</option>
+            </select>
           </div>
         )}
       </main>
@@ -1373,5 +1556,62 @@ const styles = {
     cursor: 'pointer', 
     fontSize: '0.8rem', 
     fontWeight: '500',
+  },
+  paginationContainer: {
+    background: 'white',
+    padding: '20px',
+    borderRadius: '12px',
+    border: '1px solid #e5e5e5',
+    marginTop: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+    alignItems: 'center',
+  },
+  paginationInfo: {
+    fontSize: '0.9rem',
+    color: '#666',
+    fontWeight: '500',
+  },
+  paginationControls: {
+    display: 'flex',
+    gap: '8px',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  paginationPages: {
+    display: 'flex',
+    gap: '4px',
+  },
+  paginationBtn: {
+    padding: '8px 16px',
+    background: 'white',
+    border: '1px solid #e5e5e5',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '0.85rem',
+    fontWeight: '500',
+    color: '#1a1a1a',
+    transition: 'all 0.15s',
+  },
+  paginationBtnActive: {
+    background: '#1a1a1a',
+    color: 'white',
+    borderColor: '#1a1a1a',
+  },
+  paginationBtnDisabled: {
+    opacity: 0.5,
+    cursor: 'not-allowed',
+  },
+  itemsPerPageSelect: {
+    padding: '8px 16px',
+    border: '1px solid #e5e5e5',
+    borderRadius: '8px',
+    fontSize: '0.85rem',
+    fontFamily: 'inherit',
+    cursor: 'pointer',
+    background: 'white',
+    fontWeight: '500',
+    color: '#1a1a1a',
   },
 };
