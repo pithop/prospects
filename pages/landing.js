@@ -74,7 +74,7 @@ export default function Landing() {
         <div style={styles.heroImage} className="slide-up">
           <div style={styles.screenshotContainer}>
             <img 
-              src="https://github.com/user-attachments/assets/9c3830bb-739a-43e7-b90e-d6cfd3f3f395" 
+              src="https://res.cloudinary.com/dggbfnfdl/image/upload/v1763309806/Gemini_Generated_Image_u232ybu232ybu232_pa8utq.png" 
               alt="Dashboard ProspectHub - Interface professionnelle de gestion de prospects"
               style={styles.screenshot}
             />
