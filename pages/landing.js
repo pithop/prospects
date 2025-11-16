@@ -1,6 +1,7 @@
 import React from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import Header from '../components/Header';
 
 export default function Landing() {
   const router = useRouter();
@@ -47,18 +48,8 @@ export default function Landing() {
         }
       `}</style>
 
-      {/* Navigation */}
-      <nav style={styles.nav}>
-        <div style={styles.navContainer}>
-          <div style={styles.logo}>
-            <span style={styles.logoIcon}>📊</span>
-            <span style={styles.logoText}>ProspectHub</span>
-          </div>
-          <button onClick={() => router.push('/app')} style={styles.navButton}>
-            Ouvrir l'application →
-          </button>
-        </div>
-      </nav>
+      {/* Unified Header - Non-authenticated state */}
+      <Header isAuthenticated={false} />
 
       {/* Hero Section */}
       <section style={styles.hero}>
@@ -228,26 +219,6 @@ export default function Landing() {
 }
 
 const styles = {
-  nav: {
-    background: '#ffffff',
-    borderBottom: '1px solid #e5e5e5',
-    padding: '16px 20px',
-    position: 'sticky',
-    top: 0,
-    zIndex: 100,
-  },
-  navContainer: {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  logo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-  },
   logoIcon: {
     fontSize: '1.5rem',
   },
@@ -255,16 +226,6 @@ const styles = {
     fontSize: '1.25rem',
     fontWeight: '600',
     color: '#1a1a1a',
-  },
-  navButton: {
-    padding: '10px 20px',
-    background: '#1a1a1a',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontWeight: '500',
-    fontSize: '0.95rem',
   },
   hero: {
     maxWidth: '1200px',

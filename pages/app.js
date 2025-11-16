@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import Header from '../components/Header';
 
 export default function Home() {
   const router = useRouter();
@@ -513,29 +514,8 @@ export default function Home() {
         }
       `}</style>
 
-      <header style={styles.header}>
-        <div style={styles.container}>
-          <div style={styles.headerContent}>
-            <div>
-              <h1 style={styles.title}>📊 ProspectHub</h1>
-              <p style={styles.subtitle}>Gestion professionnelle de vos prospects</p>
-            </div>
-            <div style={styles.headerActions}>
-              <button onClick={() => router.push('/dashboard')} style={styles.dashboardBtn} title="Dashboard Analytics">
-                📊 Dashboard
-              </button>
-              <button onClick={() => router.push('/')} style={styles.landingBtn} title="Landing Page">
-                🏠 Landing
-              </button>
-              <div style={styles.keyboardHints}>
-                <div style={styles.hint}>⌘K Rechercher</div>
-                <div style={styles.hint}>⌘N Nouveau</div>
-                <div style={styles.hint}>⌘I Importer</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Unified Header - Authenticated state */}
+      <Header isAuthenticated={true} />
 
       {message && <div style={{ ...styles.toast, ...(messageType === 'error' ? styles.toastError : styles.toastSuccess) }}>{message}</div>}
 
@@ -960,75 +940,10 @@ const styles = {
     fontSize: '1.2rem',
     fontWeight: '500',
   },
-  header: { 
-    background: '#ffffff', 
-    color: '#1a1a1a', 
-    padding: '24px 20px', 
-    borderBottom: '1px solid #e5e5e5',
-  },
-  headerContent: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: '20px',
-  },
-  headerActions: {
-    display: 'flex',
-    gap: '12px',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-  },
-  dashboardBtn: {
-    padding: '8px 16px',
-    background: '#1a1a1a',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontWeight: '500',
-    fontSize: '0.85rem',
-  },
-  landingBtn: {
-    padding: '8px 16px',
-    background: 'white',
-    color: '#1a1a1a',
-    border: '1px solid #e5e5e5',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontWeight: '500',
-    fontSize: '0.85rem',
-  },
-  keyboardHints: {
-    display: 'flex',
-    gap: '8px',
-    flexWrap: 'wrap',
-  },
-  hint: {
-    background: '#f5f5f5',
-    padding: '4px 10px',
-    borderRadius: '6px',
-    fontSize: '0.8rem',
-    fontWeight: '500',
-    color: '#666',
-    border: '1px solid #e5e5e5',
-  },
   container: { 
     maxWidth: '1400px', 
     margin: '0 auto', 
     padding: '30px 20px',
-  },
-  title: { 
-    fontSize: '1.75rem', 
-    fontWeight: '600', 
-    marginBottom: '4px',
-    letterSpacing: '-0.3px',
-    color: '#1a1a1a',
-  },
-  subtitle: { 
-    fontSize: '0.95rem', 
-    color: '#666',
-    fontWeight: '400',
   },
   toast: { 
     position: 'fixed', 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import Header from '../components/Header';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, LineElement, PointElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar, Pie, Line } from 'react-chartjs-2';
 
@@ -161,30 +162,29 @@ export default function Dashboard() {
         }
       `}</style>
 
-      {/* Header */}
-      <header style={styles.header}>
-        <div style={styles.container}>
-          <div style={styles.headerContent}>
-            <div>
-              <h1 style={styles.title}>📊 Dashboard Analytics</h1>
-              <p style={styles.subtitle}>Vue d'ensemble de vos performances</p>
-            </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button 
-                onClick={() => setShowCharts(!showCharts)} 
-                style={{...styles.backButton, background: showCharts ? '#1a1a1a' : 'white', color: showCharts ? 'white' : '#1a1a1a'}}
-              >
-                {showCharts ? '📊 Masquer les graphiques' : '📈 Afficher les graphiques'}
-              </button>
-              <button onClick={() => router.push('/app')} style={styles.backButton}>
-                ← Retour à l'application
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Unified Header - Authenticated state */}
+      <Header isAuthenticated={true} />
 
       <main style={styles.container}>
+        {/* Charts Toggle Button */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+          <button 
+            onClick={() => setShowCharts(!showCharts)} 
+            style={{
+              padding: '12px 24px',
+              background: showCharts ? '#1a1a1a' : 'white',
+              color: showCharts ? 'white' : '#1a1a1a',
+              border: '1px solid #e5e5e5',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '500',
+              fontSize: '0.95rem',
+            }}
+          >
+            {showCharts ? '📊 Masquer les graphiques' : '📈 Afficher les graphiques'}
+          </button>
+        </div>
+
         {/* Charts Section - Toggle */}
         {showCharts && (
           <div style={styles.chartsSection}>
@@ -395,18 +395,6 @@ const styles = {
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
   },
-  header: {
-    background: '#ffffff',
-    borderBottom: '1px solid #e5e5e5',
-    padding: '24px 20px',
-  },
-  headerContent: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: '16px',
-  },
   container: {
     maxWidth: '1400px',
     margin: '0 auto',
@@ -429,26 +417,6 @@ const styles = {
   chartContainer: {
     height: '300px',
     position: 'relative',
-  },
-  title: {
-    fontSize: '1.75rem',
-    fontWeight: '600',
-    marginBottom: '4px',
-    color: '#1a1a1a',
-  },
-  subtitle: {
-    fontSize: '0.95rem',
-    color: '#666',
-  },
-  backButton: {
-    padding: '10px 20px',
-    background: '#1a1a1a',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontWeight: '500',
-    fontSize: '0.9rem',
   },
   metricsGrid: {
     display: 'grid',
