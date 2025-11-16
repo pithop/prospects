@@ -78,10 +78,15 @@ export default async function handler(req, res) {
   if (req.method === 'PUT') {
     // Mettre à jour un prospect
     const { id, ...updates } = req.body;
+    
+    // Add updated_at timestamp
+    updates.updated_at = new Date().toISOString();
+    
     const { data, error } = await supabase
       .from('prospects')
       .update(updates)
-      .eq('id', id);
+      .eq('id', id)
+      .select(); // Return the updated row
     
     if (error) {
       const msg = error.message || '';

@@ -208,7 +208,7 @@ export default function Home() {
 
   const handleMarkContacted = async (id) => {
     try {
-      await fetch('/api/prospects', {
+      const response = await fetch('/api/prospects', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -218,10 +218,19 @@ export default function Home() {
           status: 'Contacté'  // Using capitalized status to match Kanban column
         })
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update prospect');
+      }
+      
       showMessage('Marqué comme contacté ✅');
-      loadData(); // Refresh data to reflect changes
+      
+      // Wait a moment for database to commit, then reload
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await loadData(); // Refresh data to reflect changes
     } catch (error) {
       showMessage('Erreur lors de la mise à jour', 'error');
+      console.error('Error updating prospect:', error);
     }
   };
 
@@ -265,16 +274,24 @@ export default function Home() {
         updateData.contact_date = new Date().toISOString();
       }
 
-      await fetch('/api/prospects', {
+      const response = await fetch('/api/prospects', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData)
       });
       
+      if (!response.ok) {
+        throw new Error('Failed to update status');
+      }
+      
       showMessage(`Statut mis à jour: ${newStatus} ✅`);
-      loadData(); // Refresh data to reflect changes
+      
+      // Wait a moment for database to commit, then reload
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await loadData(); // Refresh data to reflect changes
     } catch (error) {
       showMessage('Erreur lors de la mise à jour du statut', 'error');
+      console.error('Error updating status:', error);
     }
   };
 
