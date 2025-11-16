@@ -74,7 +74,7 @@ export default function Landing() {
         <div style={styles.heroImage} className="slide-up">
           <div style={styles.screenshotContainer}>
             <img 
-              src="https://res.cloudinary.com/dggbfnfdl/image/upload/v1763309806/Gemini_Generated_Image_u232ybu232ybu232_pa8utq.png" 
+              src="https://github.com/user-attachments/assets/9c3830bb-739a-43e7-b90e-d6cfd3f3f395" 
               alt="Dashboard ProspectHub - Interface professionnelle de gestion de prospects"
               style={styles.screenshot}
             />
@@ -213,13 +213,17 @@ const styles = {
     maxWidth: '1200px',
     margin: '0 auto',
     padding: '80px 20px',
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '60px',
+    display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
+    textAlign: 'center',
+    gap: '60px',
   },
   heroContent: {
     animationDelay: '0.2s',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
   },
   heroTitle: {
     fontSize: '3.5rem',
@@ -237,40 +241,47 @@ const styles = {
     color: '#666',
     marginBottom: '40px',
     lineHeight: '1.6',
+    maxWidth: '600px',
   },
   heroButtons: {
     display: 'flex',
     gap: '16px',
     flexWrap: 'wrap',
+    justifyContent: 'center',
   },
   primaryButton: {
-    padding: '14px 32px',
-    background: '#1a1a1a',
+    padding: '16px 40px',
+    background: '#4F46E5',
     color: 'white',
     border: 'none',
     borderRadius: '10px',
     cursor: 'pointer',
-    fontWeight: '500',
-    fontSize: '1rem',
+    fontWeight: '600',
+    fontSize: '1.1rem',
+    transition: 'all 0.15s ease',
+    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)',
   },
   secondaryButton: {
-    padding: '14px 32px',
-    background: 'white',
+    padding: '16px 40px',
+    background: 'transparent',
     color: '#1a1a1a',
-    border: '1px solid #e5e5e5',
+    border: '2px solid #e5e5e5',
     borderRadius: '10px',
     cursor: 'pointer',
     fontWeight: '500',
-    fontSize: '1rem',
+    fontSize: '1.1rem',
     textDecoration: 'none',
     display: 'inline-flex',
     alignItems: 'center',
+    transition: 'all 0.15s ease',
   },
   heroImage: {
     animationDelay: '0.4s',
+    width: '100%',
+    maxWidth: '1000px',
   },
   screenshotContainer: {
-    borderRadius: '12px',
+    borderRadius: '16px',
     overflow: 'hidden',
     boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
     border: '1px solid #e5e5e5',
