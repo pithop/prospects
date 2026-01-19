@@ -18,6 +18,14 @@ const thirdPartyDomains = [
 ];
 
 export default async function handler(req, res) {
+  // Security Check
+  const secretKey = req.headers['x-secret-key'];
+  const VALID_KEY = process.env.PROSPECTING_SECRET_KEY || 'super_secret_prospecting_key_2026'; // Match the Python script
+
+  if (secretKey !== VALID_KEY) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid Secret Key' });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
@@ -42,7 +50,7 @@ export default async function handler(req, res) {
           // often last part contains postal code + city or city
           const last = parts[parts.length - 1];
           // remove leading postal if exists
-          const lastClean = last.replace(/^(\d{2,5})\s*/,'').trim();
+          const lastClean = last.replace(/^(\d{2,5})\s*/, '').trim();
           return lastClean || null;
         }
       } catch (e) {
@@ -71,7 +79,7 @@ export default async function handler(req, res) {
       if (!itemCity && it.address) itemCity = extractCityFromAddress(it.address);
       if (!itemCity && it.query) {
         // try to extract tokens after last space or hyphen (e.g., "restaurant aix-en-provence")
-        const q = String(it.query || '').replace(/_/g,' ').trim();
+        const q = String(it.query || '').replace(/_/g, ' ').trim();
         const tokens = q.split(/[\s,-]+/).filter(Boolean);
         if (tokens.length >= 2) {
           // take last two tokens to handle multi-word cities
