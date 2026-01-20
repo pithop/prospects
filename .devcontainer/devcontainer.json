@@ -1,7 +1,7 @@
 {
     "name": "ProspectHub - Scraper Environment",
     "image": "mcr.microsoft.com/devcontainers/universal:2",
-    "postCreateCommand": "npm install && pip install -r requirements.txt && bash setup.sh",
+    "postCreateCommand": "npm install && python3 -m pip install -r requirements.txt && bash setup.sh",
     "customizations": {
         "vscode": {
             "extensions": [
