@@ -63,7 +63,7 @@ DEPTH = 2
 THREADS = 1
 
 # API Configuration
-API_URL = "http://localhost:3000/api/import"
+API_URL = "https://www.prospecthub.app/api/import"
 API_SECRET_KEY = "super_secret_prospecting_key_2026" # CHANGE THIS
 
 # ================= SETUP LOGGING =================
