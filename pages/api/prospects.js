@@ -20,8 +20,39 @@ const thirdPartyDomains = [
 export default async function handler(req, res) {
   const createTableSQL = `-- Run this SQL in Supabase SQL editor to create the \`prospects\` table\nCREATE TABLE prospects (\n  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,\n  name VARCHAR(255) NOT NULL,\n  phone VARCHAR(50),\n  website VARCHAR(512),\n  city VARCHAR(255),\n  category VARCHAR(100),\n  rating NUMERIC(3,1) DEFAULT 0,\n  reviews INTEGER DEFAULT 0,\n  notes TEXT,\n  is_third_party BOOLEAN DEFAULT FALSE,\n  has_website BOOLEAN DEFAULT FALSE,\n  is_prospect_to_contact BOOLEAN DEFAULT FALSE,\n  contacted BOOLEAN DEFAULT FALSE,\n  contact_date TIMESTAMP,\n  status VARCHAR(50) DEFAULT 'nouveau',\n  created_at TIMESTAMP DEFAULT NOW(),\n  updated_at TIMESTAMP DEFAULT NOW()\n);`;
   if (req.method === 'GET') {
-    // Récupérer tous les prospects
-    const { data, error } = await supabase.from('prospects').select('*');
+    // Récupérer tous les prospects avec pagination
+    const limit = req.query.limit ? parseInt(req.query.limit) : 1000;
+    const offset = req.query.offset ? parseInt(req.query.offset) : 0;
+
+    const search = req.query.search || '';
+
+    console.log(`API Fetch: Limit=${limit}, Offset=${offset}, Search="${search}"`); // DEBUG LOG
+
+    // IMPORTANT: Sort by Hot Leads first, then ID for stable pagination
+    let query = supabase
+      .from('prospects')
+      .select('*', { count: 'exact' });
+
+    // 1. City Filter (Exact Match) - PRIORITIZED for performance
+    if (req.query.city && req.query.city !== 'All') {
+      query = query.eq('city', req.query.city);
+    }
+
+    // 2. Generic Search
+    if (search) {
+      // Search in name, city, or category
+      query = query.or(`name.ilike.%${search}%,city.ilike.%${search}%,category.ilike.%${search}%`);
+    }
+
+    query = query
+      .order('is_prospect_to_contact', { ascending: false })
+      .order('id', { ascending: true });
+
+    if (limit > 0) {
+      query = query.range(offset, offset + limit - 1);
+    }
+
+    const { data, error, count } = await query;
     if (error) {
       // Help user if table is missing
       const msg = error.message || '';
@@ -39,8 +70,8 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     // Créer un prospect
-    const { name, phone, website, category, rating, reviews, notes, city } = req.body;
-    
+    const { name, phone, website, category, rating, reviews, notes, city, address, google_maps_url } = req.body;
+
     // Déterminer si c'est un prospect à contacter
     const isThirdParty = website ? thirdPartyDomains.some(domain => website.includes(domain)) : false;
     const hasRealWebsite = website && !isThirdParty;
@@ -52,6 +83,8 @@ export default async function handler(req, res) {
         phone,
         website: website || null,
         city: city || null,
+        address: address || null,
+        google_maps_url: google_maps_url || null,
         category: category || 'Non spécifié',
         rating: rating || 0,
         reviews: reviews || 0,
@@ -82,7 +115,7 @@ export default async function handler(req, res) {
       .from('prospects')
       .update(updates)
       .eq('id', id);
-    
+
     if (error) {
       const msg = error.message || '';
       if (/Could not find the table|relation .*prospects.* does not exist|does not exist/i.test(msg)) {
@@ -97,7 +130,7 @@ export default async function handler(req, res) {
     // Supprimer un prospect
     const { id } = req.body;
     const { error } = await supabase.from('prospects').delete().eq('id', id);
-    
+
     if (error) {
       const msg = error.message || '';
       if (/Could not find the table|relation .*prospects.* does not exist|does not exist/i.test(msg)) {

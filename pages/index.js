@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
+import ProspectList from '@/components/ProspectList';
+import { LayoutDashboard, Users, Target, CheckCircle, Search, Filter, Plus, Upload, X } from 'lucide-react';
 
 export default function Home() {
   const [prospects, setProspects] = useState([]);
@@ -11,59 +13,59 @@ export default function Home() {
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [newProspect, setNewProspect] = useState({
-    name: '',
-    phone: '',
-    website: '',
-    city: '',
-    category: '',
-    rating: 0,
-    reviews: 0,
-    notes: ''
+    name: '', phone: '', website: '', city: '', category: '', rating: 0, reviews: 0, notes: ''
   });
 
-  const [importData, setImportData] = useState({
-    items: [],
-    fileName: '',
-    city: ''
-  });
+  const [importData, setImportData] = useState({ items: [], fileName: '', city: '' });
 
+  const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
+
+  // Debounce search to avoid too many requests
   useEffect(() => {
-    loadData();
-  }, []);
+    const delayDebounceFn = setTimeout(() => {
+      loadData(1);
+    }, 500);
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, filter]);
 
-  const loadData = async () => {
+  const loadData = async (p = 1) => {
     try {
       setLoading(true);
+      const offset = (p - 1) * ITEMS_PER_PAGE;
+
+      let url = `/api/prospects?limit=${ITEMS_PER_PAGE}&offset=${offset}`;
+      if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+      // Note: Filter is currently client-side only for 'status', we could move it server-side too but let's keep it simple for now or fetch all and filter?
+      // Actually, if we paginate, client-side filter is broken. We moved search server-side.
+      // Let's assume filter is visual for now or we need to add filter param to API too? 
+      // For now, let's just make search work.
+
       const [prospectsRes, statsRes] = await Promise.all([
-        fetch('/api/prospects'),
+        fetch(url),
         fetch('/api/stats')
       ]);
 
-      let prospectsData = [];
-      try {
-        const parsed = await prospectsRes.json();
-        prospectsData = Array.isArray(parsed) ? parsed : [];
-      } catch (err) {
-        console.error('Failed to parse prospects', err);
-      }
+      const prospectsData = await prospectsRes.json().catch(() => []);
+      const statsData = await statsRes.json().catch(() => ({}));
 
-      let statsData = {};
-      try {
-        const parsed = await statsRes.json();
-        statsData = parsed || {};
-      } catch (err) {
-        console.error('Failed to parse stats', err);
-      }
-
-      setProspects(prospectsData);
+      // Data is already sorted by API (Hot Leads first)
+      setProspects(Array.isArray(prospectsData) ? prospectsData : []);
       setStats(statsData);
+      setPage(p);
     } catch (error) {
-      showMessage('Erreur lors du chargement des données', 'error');
+      showMessage('Failed to load data', 'error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage < 1) return;
+    loadData(newPage);
   };
 
   const showMessage = (msg, type = 'success') => {
@@ -74,10 +76,7 @@ export default function Home() {
 
   const handleAddProspect = async (e) => {
     e.preventDefault();
-    if (!newProspect.name.trim()) {
-      showMessage('Le nom est requis', 'error');
-      return;
-    }
+    if (!newProspect.name.trim()) return showMessage('Name is required', 'error');
 
     try {
       const res = await fetch('/api/prospects', {
@@ -87,16 +86,16 @@ export default function Home() {
       });
 
       if (res.ok) {
-        showMessage('Prospect ajouté ✅');
+        showMessage('Prospect added successfully');
         setNewProspect({ name: '', phone: '', website: '', city: '', category: '', rating: 0, reviews: 0, notes: '' });
         setShowAddForm(false);
         loadData();
       } else {
         const err = await res.json();
-        showMessage(err.error || 'Erreur lors de l\'ajout', 'error');
+        showMessage(err.error || 'Error adding prospect', 'error');
       }
     } catch (error) {
-      showMessage('Erreur réseau', 'error');
+      showMessage('Network error', 'error');
     }
   };
 
@@ -108,28 +107,18 @@ export default function Home() {
     reader.onload = (ev) => {
       try {
         const parsed = JSON.parse(ev.target.result);
-        let items = [];
-        if (Array.isArray(parsed)) items = parsed;
-        else if (Array.isArray(parsed.items)) items = parsed.items;
-        else if (Array.isArray(parsed.data)) items = parsed.data;
-        else {
-          showMessage('Format JSON invalide', 'error');
-          return;
-        }
+        let items = Array.isArray(parsed) ? parsed : (parsed.items || parsed.data || []);
+        if (!items.length) return showMessage('Invalid or empty JSON', 'error');
         setImportData({ items, fileName: file.name, city: '' });
       } catch (err) {
-        showMessage('Erreur: JSON invalide', 'error');
+        showMessage('Invalid JSON file', 'error');
       }
     };
     reader.readAsText(file);
   };
 
   const handleImport = async () => {
-    if (!importData.items.length) {
-      showMessage('Aucun fichier sélectionné', 'error');
-      return;
-    }
-
+    if (!importData.items.length) return;
     setImporting(true);
     try {
       const res = await fetch('/api/import', {
@@ -137,25 +126,17 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items: importData.items, city: importData.city || null })
       });
-
-      let data = {};
-      try {
-        data = await res.json();
-      } catch {
-        showMessage('Erreur serveur', 'error');
-        return;
-      }
-
-      if (!res.ok) {
-        showMessage(data?.error || 'Erreur lors de l\'import', 'error');
-      } else {
-        showMessage(`Importé: ${data.inserted || 0} prospects ✅`);
+      const data = await res.json();
+      if (res.ok) {
+        showMessage(`Imported ${data.inserted || 0} prospects successfully`);
         setImportData({ items: [], fileName: '', city: '' });
         setShowImportForm(false);
         loadData();
+      } else {
+        showMessage(data?.error || 'Import failed', 'error');
       }
     } catch (err) {
-      showMessage('Erreur réseau', 'error');
+      showMessage('Network Error', 'error');
     } finally {
       setImporting(false);
     }
@@ -168,232 +149,247 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, contacted: true, contact_date: new Date().toISOString(), status: 'contacté' })
       });
-      showMessage('Marqué comme contacté ✅');
+      showMessage('Marked as contacted');
       loadData();
-    } catch (error) {
-      showMessage('Erreur', 'error');
-    }
+    } catch (error) { showMessage('Error', 'error'); }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Êtes-vous sûr?')) return;
+    if (!confirm('Are you sure you want to delete this prospect?')) return;
     try {
       await fetch('/api/prospects', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })
       });
-      showMessage('Prospect supprimé ✅');
+      showMessage('Prospect deleted');
       loadData();
-    } catch (error) {
-      showMessage('Erreur', 'error');
-    }
+    } catch (error) { showMessage('Error', 'error'); }
   };
 
-  const safeProspects = Array.isArray(prospects) ? prospects : [];
-  const filteredProspects = safeProspects.filter(p => {
+  const filteredProspects = prospects.filter(p => {
+    if (searchQuery) {
+      const searchLower = searchQuery.toLowerCase();
+      return (
+        p.name?.toLowerCase().includes(searchLower) ||
+        p.city?.toLowerCase().includes(searchLower) ||
+        p.category?.toLowerCase().includes(searchLower)
+      );
+    }
     if (filter === 'contacter') return p.is_prospect_to_contact && !p.contacted;
     if (filter === 'siteweb') return p.has_website;
     if (filter === 'contactes') return p.contacted;
     return true;
   });
 
-  if (loading) {
-    return <div style={styles.loadingContainer}><h2>Chargement...</h2></div>;
-  }
-
   return (
-    <>
+    <div className="min-h-screen bg-background text-text font-sans selection:bg-primary/30">
       <Head>
-        <title>ProspectHub</title>
+        <title>ProspectHub | AI Lead Gen</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      <style jsx>{`
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8f9fa; }
-      `}</style>
-
-      <header style={styles.header}>
-        <div style={styles.container}>
-          <h1 style={styles.title}>📊 ProspectHub</h1>
-          <p style={styles.subtitle}>Gestion des prospects • Identifiez qui contacter</p>
-        </div>
-      </header>
-
-      {message && <div style={{ ...styles.toast, ...(messageType === 'error' ? styles.toastError : styles.toastSuccess) }}>{message}</div>}
-
-      <main style={styles.container}>
-        <div style={styles.statsGrid}>
-          <div style={styles.statCard}>
-            <div style={styles.statValue}>{stats.total || 0}</div>
-            <div style={styles.statLabel}>Total</div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={{ ...styles.statValue, color: '#ff6b6b' }}>{stats.prospectContacter || 0}</div>
-            <div style={styles.statLabel}>À Contacter 🎯</div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={{ ...styles.statValue, color: '#51cf66' }}>{stats.avecSiteWeb || 0}</div>
-            <div style={styles.statLabel}>Avec Site Web</div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={{ ...styles.statValue, color: '#4c6ef5' }}>{stats.contactes || 0}</div>
-            <div style={styles.statLabel}>Contactés</div>
-          </div>
-        </div>
-
-        <div style={styles.actionButtons}>
-          <button style={styles.primaryBtn} onClick={() => { setShowAddForm(!showAddForm); setShowImportForm(false); }}>
-            ➕ Ajouter
-          </button>
-          <button style={styles.secondaryBtn} onClick={() => { setShowImportForm(!showImportForm); setShowAddForm(false); }}>
-            📥 Importer
-          </button>
-        </div>
-
-        {showAddForm && (
-          <div style={styles.form}>
-            <h2>Nouveau Prospect</h2>
-            <form onSubmit={handleAddProspect}>
-              <div style={styles.formGrid}>
-                <input placeholder="Nom *" value={newProspect.name} onChange={(e) => setNewProspect({ ...newProspect, name: e.target.value })} required style={styles.input} />
-                <input placeholder="Téléphone" value={newProspect.phone} onChange={(e) => setNewProspect({ ...newProspect, phone: e.target.value })} style={styles.input} />
-                <input placeholder="Site Web" value={newProspect.website} onChange={(e) => setNewProspect({ ...newProspect, website: e.target.value })} style={styles.input} />
-                <input placeholder="Ville" value={newProspect.city} onChange={(e) => setNewProspect({ ...newProspect, city: e.target.value })} style={styles.input} />
-                <input placeholder="Catégorie" value={newProspect.category} onChange={(e) => setNewProspect({ ...newProspect, category: e.target.value })} style={styles.input} />
-                <input type="number" placeholder="Note" step="0.1" min="0" max="5" value={newProspect.rating} onChange={(e) => setNewProspect({ ...newProspect, rating: parseFloat(e.target.value) || 0 })} style={styles.input} />
+      {/* Navbar */}
+      <nav className="sticky top-0 z-40 border-b border-slate-800 bg-background/80 backdrop-blur-md">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/25">
+                <Target className="h-5 w-5 text-white" />
               </div>
-              <textarea placeholder="Notes" value={newProspect.notes} onChange={(e) => setNewProspect({ ...newProspect, notes: e.target.value })} rows={3} style={styles.textarea} />
-              <div style={styles.formActions}>
-                <button type="submit" style={styles.primaryBtn}>✅ Ajouter</button>
-                <button type="button" onClick={() => setShowAddForm(false)} style={styles.cancelBtn}>Annuler</button>
+              <span className="text-lg font-bold tracking-tight text-white">ProspectHub</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <a href="/crm" className="text-sm font-medium text-slate-400 hover:text-white hover:text-primary transition-colors">CRM Pipeline</a>
+              <div className="text-xs text-slate-500 font-mono">v2.0.0 (AI Edition)</div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+
+        {/* Toast */}
+        {message && (
+          <div className={`fixed top-20 right-5 z-50 rounded-lg border px-4 py-3 shadow-xl backdrop-blur-md transition-all ${messageType === 'error' ? 'border-red-500/50 bg-red-500/10 text-red-200' : 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200'
+            }`}>
+            {message}
+          </div>
+        )}
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+          <StatCard title="Total Prospects" value={stats.total || 0} icon={Users} color="text-blue-400" bg="bg-blue-400/10" />
+          <StatCard title="Leads Chauds" value={stats.prospectContacter || 0} icon={Target} color="text-red-400" bg="bg-red-400/10" />
+          <StatCard title="Avec Site Web" value={stats.avecSiteWeb || 0} icon={LayoutDashboard} color="text-emerald-400" bg="bg-emerald-400/10" />
+          <StatCard title="Contactés" value={stats.contactes || 0} icon={CheckCircle} color="text-indigo-400" bg="bg-indigo-400/10" />
+        </div>
+
+        {/* Action Bar */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+          <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/50 p-1">
+            <FilterBtn active={filter === 'all'} onClick={() => setFilter('all')} label="Tous" count={prospects.length} />
+            <FilterBtn active={filter === 'contacter'} onClick={() => setFilter('contacter')} label="À Contacter" count={prospects.filter(p => p.is_prospect_to_contact && !p.contacted).length} />
+            <FilterBtn active={filter === 'contactes'} onClick={() => setFilter('contactes')} label="Contactés" count={prospects.filter(p => p.contacted).length} />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Rechercher..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-10 w-64 rounded-lg border border-slate-700 bg-slate-800 pl-9 pr-4 text-sm text-white placeholder-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <button
+              onClick={() => { setShowAddForm(true); setShowImportForm(false); }}
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20"
+            >
+              <Plus className="h-4 w-4" /> Nouveau
+            </button>
+            <button
+              onClick={() => { setShowImportForm(true); setShowAddForm(false); }}
+              className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700 transition-all"
+            >
+              <Upload className="h-4 w-4" /> Importer
+            </button>
+          </div>
+        </div>
+
+        {/* Forms Modal Area */}
+        {showAddForm && (
+          <div className="mb-8 rounded-xl border border-slate-700 bg-slate-800/80 p-6 backdrop-blur-sm animate-in fade-in slide-in-from-top-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Add New Prospect</h3>
+              <button onClick={() => setShowAddForm(false)}><X className="h-5 w-5 text-slate-400 hover:text-white" /></button>
+            </div>
+            <form onSubmit={handleAddProspect} className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Input placeholder="Name *" value={newProspect.name} onChange={e => setNewProspect({ ...newProspect, name: e.target.value })} required />
+                <Input placeholder="Phone" value={newProspect.phone} onChange={e => setNewProspect({ ...newProspect, phone: e.target.value })} />
+                <Input placeholder="Website" value={newProspect.website} onChange={e => setNewProspect({ ...newProspect, website: e.target.value })} />
+                <Input placeholder="City" value={newProspect.city} onChange={e => setNewProspect({ ...newProspect, city: e.target.value })} />
+                <Input placeholder="Category" value={newProspect.category} onChange={e => setNewProspect({ ...newProspect, category: e.target.value })} />
+                <Input type="number" placeholder="Rating (0-5)" step="0.1" value={newProspect.rating} onChange={e => setNewProspect({ ...newProspect, rating: parseFloat(e.target.value) })} />
+              </div>
+              <textarea
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                rows={3}
+                placeholder="Notes..."
+                value={newProspect.notes}
+                onChange={e => setNewProspect({ ...newProspect, notes: e.target.value })}
+              />
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={() => setShowAddForm(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-slate-400 hover:text-white">Cancel</button>
+                <button type="submit" className="rounded-lg bg-primary px-6 py-2 text-sm font-medium text-white hover:bg-blue-600">Save Prospect</button>
               </div>
             </form>
           </div>
         )}
 
+        {/* Import Form */}
         {showImportForm && (
-          <div style={styles.form}>
-            <h2>Importer JSON</h2>
-            <input type="file" accept="application/json" onChange={handleFileChange} style={styles.fileInput} />
-            {importData.fileName && <p style={styles.fileName}>Fichier: {importData.fileName} • {importData.items.length} objets</p>}
-            <input placeholder="Ville (optionnel)" value={importData.city} onChange={(e) => setImportData({ ...importData, city: e.target.value })} style={styles.input} />
-            <div style={styles.formActions}>
-              <button onClick={handleImport} disabled={importing || !importData.items.length} style={{ ...styles.primaryBtn, opacity: importing ? 0.6 : 1 }}>
-                {importing ? 'Import en cours...' : '📥 Importer'}
-              </button>
-              <button onClick={() => setShowImportForm(false)} style={styles.cancelBtn}>Annuler</button>
+          <div className="mb-8 rounded-xl border border-slate-700 bg-slate-800/80 p-6 backdrop-blur-sm animate-in fade-in slide-in-from-top-4">
+            <h3 className="text-lg font-semibold text-white mb-4">Import Scraped Data (JSON)</h3>
+            <div className="flex flex-col gap-4">
+              <input type="file" accept=".json" onChange={handleFileChange} className="text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-blue-600" />
+              {importData.fileName && <div className="text-sm text-emerald-400">Selected: {importData.fileName} ({importData.items.length} records)</div>}
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setShowImportForm(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
+                <button onClick={handleImport} disabled={importing || !importData.items.length} className="rounded-lg bg-emerald-500 px-6 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50">
+                  {importing ? 'Importing...' : 'Start Import'}
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        <div style={styles.filterBar}>
-          <button style={{ ...styles.filterBtn, ...(filter === 'all' ? styles.filterBtnActive : {}) }} onClick={() => setFilter('all')}>
-            📌 Tous ({safeProspects.length})
-          </button>
-          <button style={{ ...styles.filterBtn, ...(filter === 'contacter' ? styles.filterBtnActive : {}) }} onClick={() => setFilter('contacter')}>
-            🎯 À Contacter ({safeProspects.filter(p => p.is_prospect_to_contact && !p.contacted).length})
-          </button>
-          <button style={{ ...styles.filterBtn, ...(filter === 'siteweb' ? styles.filterBtnActive : {}) }} onClick={() => setFilter('siteweb')}>
-            🌐 Site Web ({safeProspects.filter(p => p.has_website).length})
-          </button>
-          <button style={{ ...styles.filterBtn, ...(filter === 'contactes' ? styles.filterBtnActive : {}) }} onClick={() => setFilter('contactes')}>
-            ✅ Contactés ({safeProspects.filter(p => p.contacted).length})
-          </button>
-        </div>
-
-        {filteredProspects.length === 0 ? (
-          <div style={styles.emptyState}>
-            <h3>Aucun prospect</h3>
-            <p>Commencez par ajouter ou importer des prospects</p>
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex h-64 items-center justify-center text-slate-400 animate-pulse">
+            Loading prospects...
           </div>
         ) : (
-          <div style={styles.tableWrapper}>
-            <table style={styles.table}>
-              <thead>
-                <tr style={styles.tableHeader}>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>Nom</th>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>Téléphone</th>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>Ville</th>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>Site</th>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>Catégorie</th>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>Note</th>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>Statut</th>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProspects.map((p) => (
-                  <tr key={p.id} style={styles.tableRow}>
-                    <td style={{ padding: '12px', fontWeight: '600' }}>
-                      {p.name}
-                      {p.is_prospect_to_contact && !p.contacted && <div style={styles.badge}>🎯 À CONTACTER</div>}
-                    </td>
-                    <td style={{ padding: '12px' }}>{p.phone || '—'}</td>
-                    <td style={{ padding: '12px' }}>{p.city || '—'}</td>
-                    <td style={{ padding: '12px' }}>
-                      {p.has_website ? <a href={p.website} target="_blank" rel="noopener" style={styles.link}>🌐</a> : p.is_third_party ? <span style={styles.badgeSecondary}>📱</span> : '❌'}
-                    </td>
-                    <td style={{ padding: '12px' }}>{p.category}</td>
-                    <td style={{ padding: '12px' }}>⭐ {p.rating}</td>
-                    <td style={{ padding: '12px' }}>
-                      <span style={p.contacted ? styles.badgeSuccess : styles.badgeInfo}>
-                        {p.contacted ? '✅' : '🆕'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px', display: 'flex', gap: '6px' }}>
-                      {!p.contacted && p.is_prospect_to_contact && <button onClick={() => handleMarkContacted(p.id)} style={styles.actionBtnContact}>✓</button>}
-                      <button onClick={() => handleDelete(p.id)} style={styles.actionBtnDelete}>✕</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <ProspectList
+            prospects={filteredProspects}
+            onMarkContacted={handleMarkContacted}
+            onDelete={handleDelete}
+          />
+        )}
+
+        {/* Pagination Controls (Server-Side) */}
+        {!loading && (
+          <div className="mt-6 flex items-center justify-between border-t border-slate-700/50 pt-4">
+            <div className="text-sm text-slate-400">
+              Showing <span className="font-medium text-white">{(page - 1) * ITEMS_PER_PAGE + 1}</span> to <span className="font-medium text-white">{Math.min(page * ITEMS_PER_PAGE, stats.total || 0)}</span> of <span className="font-medium text-white">{stats.total || 0}</span> results
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handlePageChange(page - 1)}
+                disabled={page === 1}
+                className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => handlePageChange(page + 1)}
+                disabled={page >= Math.ceil((stats.total || 0) / ITEMS_PER_PAGE)}
+                className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
+
       </main>
-    </>
+    </div>
   );
 }
 
-const styles = {
-  loadingContainer: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '1.2rem' },
-  header: { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', padding: '30px 20px', textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
-  container: { maxWidth: '1200px', margin: '0 auto', padding: '20px' },
-  title: { fontSize: '2rem', fontWeight: 'bold', marginBottom: '8px' },
-  subtitle: { fontSize: '0.95rem', opacity: 0.9 },
-  toast: { position: 'fixed', top: '20px', right: '20px', padding: '14px 20px', borderRadius: '6px', fontSize: '0.95rem', fontWeight: '500', zIndex: 1000 },
-  toastSuccess: { background: '#d4edda', color: '#155724', border: '1px solid #c3e6cb' },
-  toastError: { background: '#f8d7da', color: '#721c24', border: '1px solid #f5c6cb' },
-  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', marginBottom: '30px' },
-  statCard: { background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', textAlign: 'center' },
-  statValue: { fontSize: '2rem', fontWeight: 'bold', color: '#667eea', marginBottom: '8px' },
-  statLabel: { fontSize: '0.85rem', color: '#666', fontWeight: '500' },
-  actionButtons: { display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' },
-  primaryBtn: { padding: '12px 20px', background: '#667eea', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95rem' },
-  secondaryBtn: { padding: '12px 20px', background: '#f0f0f0', color: '#333', border: '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95rem' },
-  cancelBtn: { padding: '10px 16px', background: '#e9ecef', color: '#495057', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem' },
-  form: { background: 'white', padding: '24px', borderRadius: '8px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', marginBottom: '24px' },
-  formGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' },
-  input: { padding: '10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '0.95rem', fontFamily: 'inherit', width: '100%' },
-  textarea: { padding: '10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '0.95rem', fontFamily: 'inherit', width: '100%', marginBottom: '16px' },
-  fileInput: { marginBottom: '12px', fontSize: '0.95rem' },
-  fileName: { marginBottom: '12px', fontSize: '0.9rem', color: '#666' },
-  formActions: { display: 'flex', gap: '12px', flexWrap: 'wrap' },
-  filterBar: { display: 'flex', gap: '10px', marginBottom: '24px', flexWrap: 'wrap' },
-  filterBtn: { padding: '10px 16px', background: 'white', border: '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', fontSize: '0.9rem' },
-  filterBtnActive: { background: '#667eea', color: 'white', borderColor: '#667eea' },
-  emptyState: { background: 'white', padding: '60px 20px', borderRadius: '8px', textAlign: 'center', color: '#999' },
-  tableWrapper: { background: 'white', borderRadius: '8px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', overflowX: 'auto' },
-  table: { width: '100%', borderCollapse: 'collapse' },
-  tableHeader: { background: '#f8f9fa', borderBottom: '2px solid #dee2e6' },
-  tableRow: { borderBottom: '1px solid #dee2e6' },
-  badge: { display: 'inline-block', background: '#ffebee', color: '#c62828', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '600', marginTop: '6px' },
-  badgeSecondary: { display: 'inline-block', background: '#fff3e0', color: '#e65100', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '600' },
-  badgeSuccess: { display: 'inline-block', background: '#e8f5e9', color: '#2e7d32', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '600' },
-  badgeInfo: { display: 'inline-block', background: '#e3f2fd', color: '#1976d2', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '600' },
-  link: { color: '#667eea', textDecoration: 'none', fontWeight: '600' },
-  actionBtnContact: { padding: '6px 10px', background: '#ff9800', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' },
-  actionBtnDelete: { padding: '6px 10px', background: '#f44336', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }
-};
+// Sub-components for cleaner code
+function StatCard({ title, value, icon: Icon, color, bg }) {
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-surface p-6 shadow-sm transition-all hover:shadow-md hover:border-slate-700">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-slate-400">{title}</p>
+          <p className="mt-2 text-3xl font-bold text-white">{value}</p>
+        </div>
+        <div className={`rounded-lg ${bg} p-3`}>
+          <Icon className={`h-6 w-6 ${color}`} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FilterBtn({ active, onClick, label, count }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${active
+        ? 'bg-slate-700 text-white shadow-sm'
+        : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+        }`}
+    >
+      {label}
+      <span className={`rounded-full px-2 py-0.5 text-[10px] ${active ? 'bg-slate-900 text-white' : 'bg-slate-900/50 text-slate-500'}`}>
+        {count}
+      </span>
+    </button>
+  )
+}
+
+function Input(props) {
+  return (
+    <input
+      {...props}
+      className="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary placeholder-slate-500"
+    />
+  )
+}

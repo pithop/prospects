@@ -71,8 +71,8 @@ export default async function handler(req, res) {
         if (Array.isArray(it.categories) && it.categories.length) category = it.categories[0];
         else if (typeof it.categories === 'string') category = it.categories.split(',')[0].trim();
       }
-      const rating = Number(it.rating || it.note || 0) || 0;
-      const reviews = parseInt(it.reviews || it.avis || it.reviews_count || 0) || 0;
+      const rating = Number(it.rating || it.note || it.review_rating || 0) || 0;
+      const reviews = parseInt(it.reviews || it.avis || it.reviews_count || it.review_count || 0) || 0;
       const notes = it.description || it.notes || it.comment || '';
       // Determine city from several possible fields (city, ville, address, query)
       let itemCity = it.city || it.ville || city || null;
@@ -109,7 +109,7 @@ export default async function handler(req, res) {
       };
     });
 
-    const { data, error } = await supabase.from('prospects').insert(toInsert);
+    const { data, error } = await supabase.from('prospects').insert(toInsert).select();
     if (error) {
       const msg = error.message || '';
       const createTableSQL = `-- Run this SQL in Supabase SQL editor to create the \`prospects\` table\nCREATE TABLE prospects (\n  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,\n  name VARCHAR(255) NOT NULL,\n  phone VARCHAR(50),\n  website VARCHAR(512),\n  city VARCHAR(255),\n  category VARCHAR(100),\n  rating NUMERIC(3,1) DEFAULT 0,\n  reviews INTEGER DEFAULT 0,\n  notes TEXT,\n  is_third_party BOOLEAN DEFAULT FALSE,\n  has_website BOOLEAN DEFAULT FALSE,\n  is_prospect_to_contact BOOLEAN DEFAULT FALSE,\n  contacted BOOLEAN DEFAULT FALSE,\n  contact_date TIMESTAMP,\n  status VARCHAR(50) DEFAULT 'nouveau',\n  created_at TIMESTAMP DEFAULT NOW(),\n  updated_at TIMESTAMP DEFAULT NOW()\n);`;

@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS prospects (
   website VARCHAR(512),
   city VARCHAR(255),
   category VARCHAR(100),
+  address VARCHAR(512),
+  google_maps_url TEXT,
   rating NUMERIC(3,1) DEFAULT 0,
   reviews INTEGER DEFAULT 0,
   notes TEXT,
