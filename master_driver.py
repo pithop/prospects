@@ -154,8 +154,17 @@ def run_scraper_job(city_data, job_id):
              # run scraper
              res = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
              
+             if res.returncode != 0:
+                 logging.error(f"Scraper command failed with code {res.returncode}")
+                 logging.error(f"Stderr: {res.stderr}")
+             
              if os.path.exists(output_file) and os.path.getsize(output_file) > 50:
                  process_and_upload(output_file, city_data)
+             else:
+                 logging.warning(f"No results found for {niche} in {city_data['name']} (File empty or missing)")
+                 if res.stderr:
+                     logging.warning(f"Scraper Stderr: {res.stderr}")
+
         except Exception as e:
              logging.error(f"Job {job_id} Niche {niche} Failed: {e}")
         finally:
