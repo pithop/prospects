@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, MapPin, Globe, Phone, Star, Zap, Copy, Check, X } from 'lucide-react';
+import { Search, MapPin, Globe, Phone, Star, Zap, Copy, Check, X, Clock } from 'lucide-react';
 
 export default function ProspectList({ prospects, onMarkContacted, onDelete }) {
     const [selectedProspect, setSelectedProspect] = useState(null);
@@ -108,6 +108,12 @@ export default function ProspectList({ prospects, onMarkContacted, onDelete }) {
                                             <X className="h-3.5 w-3.5" />
                                             No Website
                                         </span>
+                                    )}
+                                    {p.best_time_to_call && (
+                                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-purple-400/10 px-2.5 py-1.5 text-xs font-medium text-purple-400 border border-purple-400/20">
+                                            <Clock className="h-3.5 w-3.5" />
+                                            Call: {p.best_time_to_call}
+                                        </div>
                                     )}
                                 </td>
                                 <td className="px-6 py-4">

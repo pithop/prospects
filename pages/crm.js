@@ -8,7 +8,6 @@ import CRMCard from '@/components/CRMCard';
 export default function CRM() {
     const [allProspects, setAllProspects] = useState([]); // Store fetched data
     const [columns, setColumns] = useState({
-        'nouveau': { id: 'nouveau', title: 'Nouveaux', items: [] },
         'contacted': { id: 'contacted', title: 'Contactés', items: [] },
         'interested': { id: 'interested', title: 'Intéressés', items: [] },
         'signed': { id: 'signed', title: 'Signés', items: [] }
@@ -76,7 +75,6 @@ export default function CRM() {
 
     const distributeProspects = (prospects) => {
         const newColumns = {
-            'nouveau': { id: 'nouveau', title: 'Nouveaux 🆕', items: [] },
             'contacted': { id: 'contacted', title: 'Contactés 📩', items: [] },
             'interested': { id: 'interested', title: 'Intéressés 🔥', items: [] },
             'signed': { id: 'signed', title: 'Signés 🤝', items: [] }
@@ -88,8 +86,11 @@ export default function CRM() {
             // Client-side text search (fast because we only have ~500-2000 items now)
             if (searchQuery && !p.name.toLowerCase().includes(lowerSearch) && !p.category?.toLowerCase().includes(lowerSearch)) return;
 
-            const status = p.status && newColumns[p.status] ? p.status : 'nouveau';
-            newColumns[status].items.push(p);
+            // Only distribute if status matches one of our columns. 
+            // 'nouveau' prospects are effectively filtered out of the Kanban board here.
+            if (p.status && newColumns[p.status]) {
+                newColumns[p.status].items.push(p);
+            }
         });
 
         setColumns(newColumns);

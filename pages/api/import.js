@@ -87,6 +87,11 @@ export default async function handler(req, res) {
         } else if (tokens.length === 1) itemCity = tokens[0];
       }
 
+      const address = it.address || null;
+      const google_maps_url = it.google_maps_url || it.link || it.url || it.map_url || null;
+      const popular_times = it.popular_times || null;
+      const best_time_to_call = it.best_time_to_call || null;
+
       const isThirdParty = website ? thirdPartyDomains.some(domain => website.includes(domain)) : false;
       const hasRealWebsite = website && !isThirdParty;
       const isProspect = !hasRealWebsite;
@@ -96,6 +101,10 @@ export default async function handler(req, res) {
         phone,
         website: website || null,
         city: itemCity || null,
+        address,
+        google_maps_url,
+        popular_times,
+        best_time_to_call,
         category,
         rating,
         reviews,

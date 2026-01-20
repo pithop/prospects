@@ -126,12 +126,53 @@ async function enrichData() {
                     // Only update if DB is missing data AND we have new data
                     const needAddress = !dbProspect.address && addressVal;
                     const needUrl = !dbProspect.google_maps_url && item.link;
+                    const needPopularTimes = !dbProspect.popular_times && item.popular_times;
 
-                    if (needAddress || needUrl) {
+                    let bestTimeVal = null;
+                    if (item.popular_times) {
+                        // Simple Algorithm: Find the weekday with lowest traffic between 10am-11am or 3pm-5pm
+                        // We prefer Tuesday, Wednesday, Thursday to avoid rush
+                        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                        let bestDay = '';
+                        let lowestTraffic = 100;
+                        let selectedSlot = '';
+
+                        days.forEach(day => {
+                            if (item.popular_times[day]) {
+                                // Check morning slot (10-11)
+                                const morningTraffic = item.popular_times[day]["10"] || 0;
+                                // Check afternoon slot (15-16)
+                                const afternoonTraffic = item.popular_times[day]["15"] || 0;
+
+                                // We prefer afternoon if traffic is low, as managers are often less busy
+                                if (afternoonTraffic < lowestTraffic && afternoonTraffic > 0) { // >0 means open
+                                    lowestTraffic = afternoonTraffic;
+                                    bestDay = day;
+                                    selectedSlot = "15h (Afternoon)";
+                                }
+
+                                if (morningTraffic < lowestTraffic && morningTraffic > 0) {
+                                    lowestTraffic = morningTraffic;
+                                    bestDay = day;
+                                    selectedSlot = "10h (Morning)";
+                                }
+                            }
+                        });
+
+                        if (bestDay) {
+                            bestTimeVal = `${bestDay} around ${selectedSlot} (${lowestTraffic}% busy)`;
+                        }
+                    }
+
+                    const needBestTime = !dbProspect.best_time_to_call && bestTimeVal;
+
+                    if (needAddress || needUrl || needPopularTimes || needBestTime) {
                         // Update DB
                         const updates = { id: dbProspect.id };
                         if (needAddress) updates.address = addressVal;
                         if (needUrl) updates.google_maps_url = item.link;
+                        if (needPopularTimes) updates.popular_times = item.popular_times;
+                        if (needBestTime) updates.best_time_to_call = bestTimeVal;
 
                         const updateRes = await fetch(API_URL, {
                             method: 'PUT',
@@ -144,10 +185,13 @@ async function enrichData() {
 
                         if (updateRes.ok) {
                             console.log(`✅ Updated: ${item.title} (ID: ${dbProspect.id})`);
+                            if (needBestTime) console.log(`   sched: ${bestTimeVal}`);
                             updatedCount++;
                             // Update local map to avoid redundant updates if duplicates exist in JSONs
                             if (needAddress) dbProspect.address = addressVal;
                             if (needUrl) dbProspect.google_maps_url = item.link;
+                            if (needPopularTimes) dbProspect.popular_times = item.popular_times;
+                            if (needBestTime) dbProspect.best_time_to_call = bestTimeVal;
                         } else {
                             console.error(`⚠️ Failed to update ${item.title}:`, await updateRes.text());
                         }

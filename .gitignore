@@ -37,13 +37,10 @@ yarn-error.log*
 Thumbs.db
 
 # Zero-Touch Prospecting Bot
-master_driver.py
-setup.sh
 scraper-app
 data/
 logs/
 last_city_index.txt
-README_BOT.md
 *.log
 Automating Google Maps Scraping For France.txt
 Prospecting French Restaurants Online.md

@@ -1,0 +1,9 @@
+# Exclude scraper scripts and data from Vercel deployment
+master_driver.py
+setup.sh
+scraper-app
+data/
+logs/
+last_city_index.txt
+requirements.txt
+.devcontainer/

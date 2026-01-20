@@ -70,7 +70,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     // Créer un prospect
-    const { name, phone, website, category, rating, reviews, notes, city, address, google_maps_url } = req.body;
+    const { name, phone, website, category, rating, reviews, notes, city, address, google_maps_url, popular_times, best_time_to_call } = req.body;
 
     // Déterminer si c'est un prospect à contacter
     const isThirdParty = website ? thirdPartyDomains.some(domain => website.includes(domain)) : false;
@@ -85,6 +85,8 @@ export default async function handler(req, res) {
         city: city || null,
         address: address || null,
         google_maps_url: google_maps_url || null,
+        popular_times: popular_times || null,
+        best_time_to_call: best_time_to_call || null,
         category: category || 'Non spécifié',
         rating: rating || 0,
         reviews: reviews || 0,

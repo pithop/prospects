@@ -7,7 +7,7 @@ export default function Home() {
   const [prospects, setProspects] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('nouveau');
   const [showAddForm, setShowAddForm] = useState(false);
   const [showImportForm, setShowImportForm] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -147,9 +147,9 @@ export default function Home() {
       await fetch('/api/prospects', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, contacted: true, contact_date: new Date().toISOString(), status: 'contacté' })
+        body: JSON.stringify({ id, contacted: true, contact_date: new Date().toISOString(), status: 'contacted' })
       });
-      showMessage('Marked as contacted');
+      showMessage('Moved to CRM Pipeline - Contacted!');
       loadData();
     } catch (error) { showMessage('Error', 'error'); }
   };
@@ -170,15 +170,29 @@ export default function Home() {
   const filteredProspects = prospects.filter(p => {
     if (searchQuery) {
       const searchLower = searchQuery.toLowerCase();
+      // Ensure we still respect the main filter logic even when searching?
+      // For now, global search across everything is usually more useful, BUT...
+      // If we want to strictly separate New vs Contacted, we should probably stick to it.
+      // Let's allow search to find ANYTHING for convenience, but default view is restricted.
       return (
         p.name?.toLowerCase().includes(searchLower) ||
         p.city?.toLowerCase().includes(searchLower) ||
         p.category?.toLowerCase().includes(searchLower)
       );
     }
+
+    // Default View: 'nouveau' (Everything that is NOT contacted)
+    if (filter === 'nouveau') return !p.contacted && (p.status === 'nouveau' || !p.status);
+
+    // Hot Leads (Sub-segment of Nouveau)
     if (filter === 'contacter') return p.is_prospect_to_contact && !p.contacted;
-    if (filter === 'siteweb') return p.has_website;
+
+    // Website filter
+    if (filter === 'siteweb') return p.has_website && !p.contacted;
+
+    // If we want to see history
     if (filter === 'contactes') return p.contacted;
+
     return true;
   });
 
@@ -229,9 +243,9 @@ export default function Home() {
         {/* Action Bar */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
           <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/50 p-1">
-            <FilterBtn active={filter === 'all'} onClick={() => setFilter('all')} label="Tous" count={prospects.length} />
-            <FilterBtn active={filter === 'contacter'} onClick={() => setFilter('contacter')} label="À Contacter" count={prospects.filter(p => p.is_prospect_to_contact && !p.contacted).length} />
-            <FilterBtn active={filter === 'contactes'} onClick={() => setFilter('contactes')} label="Contactés" count={prospects.filter(p => p.contacted).length} />
+            <FilterBtn active={filter === 'nouveau'} onClick={() => setFilter('nouveau')} label="Nouveaux" count={prospects.filter(p => !p.contacted).length} />
+            <FilterBtn active={filter === 'contacter'} onClick={() => setFilter('contacter')} label="Hot Leads 🔥" count={prospects.filter(p => p.is_prospect_to_contact && !p.contacted).length} />
+            <FilterBtn active={filter === 'contactes'} onClick={() => setFilter('contactes')} label="Déjà Contactés" count={prospects.filter(p => p.contacted).length} />
           </div>
 
           <div className="flex items-center gap-3">

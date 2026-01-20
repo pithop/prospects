@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS prospects (
   is_prospect_to_contact BOOLEAN DEFAULT FALSE,
   contacted BOOLEAN DEFAULT FALSE,
   contact_date TIMESTAMP,
+  popular_times JSONB,
+  best_time_to_call VARCHAR(255),
   status VARCHAR(50) DEFAULT 'nouveau',
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
