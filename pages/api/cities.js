@@ -31,7 +31,15 @@ export default async function handler(req, res) {
         if (error) throw error;
 
         // Deduplicate on server side to save bandwidth
-        const uniqueCities = [...new Set(data.map(p => p.city))].sort();
+        const uniqueCities = [...new Set(data.map(p => p.city))]
+            .filter(city => {
+                if (!city) return false;
+                if (city.length > 30) return false; // Likely a restaurant name / sentence
+                if (/\d/.test(city)) return false;  // Has numbers (postal code or address)
+                if (!/^[a-zA-ZÀ-ÿ\s\-'’]+$/.test(city)) return false; // Has weird chars
+                return true;
+            })
+            .sort();
 
         return res.status(200).json(uniqueCities);
     } catch (err) {
