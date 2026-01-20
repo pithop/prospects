@@ -1,6 +1,9 @@
 {
     "name": "ProspectHub - Scraper Environment",
-    "image": "mcr.microsoft.com/devcontainers/universal:2",
+    "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {}
+    },
     "postCreateCommand": "npm install && python3 -m pip install -r requirements.txt && bash setup.sh",
     "customizations": {
         "vscode": {
