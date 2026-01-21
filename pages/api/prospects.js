@@ -38,6 +38,28 @@ export default async function handler(req, res) {
       query = query.eq('city', req.query.city);
     }
 
+    // 2. Status Filter
+    if (req.query.status) {
+      switch (req.query.status) {
+        case 'nouveau':
+          // Default view: Not contacted
+          query = query.eq('contacted', false);
+          break;
+        case 'contacter':
+          // Hot Leads
+          query = query.eq('is_prospect_to_contact', true).eq('contacted', false);
+          break;
+        case 'siteweb':
+          // Website Active
+          query = query.eq('has_website', true).eq('contacted', false);
+          break;
+        case 'contactes':
+          // History
+          query = query.eq('contacted', true);
+          break;
+      }
+    }
+
     // 2. Generic Search
     if (search) {
       // Search in name, city, or category

@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { DragDropContext, Draggable } from '@hello-pangea/dnd';
+import { StrictModeDroppable } from '@/components/StrictModeDroppable';
 import { LayoutDashboard, Users, Mail, Phone, ExternalLink, MapPin, Search, Filter } from 'lucide-react';
 import EmailGenerator from '@/components/EmailGenerator';
+import CallModal from '@/components/CallModal';
 import CRMCard from '@/components/CRMCard';
 
 export default function CRM() {
     const [allProspects, setAllProspects] = useState([]); // Store fetched data
     const [columns, setColumns] = useState({
+        'retry': { id: 'retry', title: 'À rappeler', items: [] },
         'contacted': { id: 'contacted', title: 'Contactés', items: [] },
         'interested': { id: 'interested', title: 'Intéressés', items: [] },
         'signed': { id: 'signed', title: 'Signés', items: [] }
     });
     const [loading, setLoading] = useState(true);
-    const [selectedProspect, setSelectedProspect] = useState(null);
+    const [selectedProspect, setSelectedProspect] = useState(null); // For Email Generator
+    const [callProspect, setCallProspect] = useState(null);       // For Call Modal
     const [searchQuery, setSearchQuery] = useState('');
     const [cityFilter, setCityFilter] = useState(''); // Empty initially
     const [cities, setCities] = useState([]);
@@ -75,6 +79,7 @@ export default function CRM() {
 
     const distributeProspects = (prospects) => {
         const newColumns = {
+            'retry': { id: 'retry', title: 'À rappeler ⏳', items: [] },
             'contacted': { id: 'contacted', title: 'Contactés 📩', items: [] },
             'interested': { id: 'interested', title: 'Intéressés 🔥', items: [] },
             'signed': { id: 'signed', title: 'Signés 🤝', items: [] }
@@ -88,6 +93,9 @@ export default function CRM() {
 
             // Only distribute if status matches one of our columns. 
             // 'nouveau' prospects are effectively filtered out of the Kanban board here.
+            // Normalize 'no-answer' to 'retry'
+            if (p.status === 'no-answer') p.status = 'retry';
+
             if (p.status && newColumns[p.status]) {
                 newColumns[p.status].items.push(p);
             }
@@ -136,6 +144,31 @@ export default function CRM() {
             } catch (err) {
                 console.error("Failed to update status", err);
             }
+        }
+    };
+
+    // Unified Status Updater (Used by Drag & Drop AND Call Modal)
+    const handleStatusUpdate = async (id, newStatus) => {
+        // Optimistic UI Update
+        setAllProspects(prev => prev.map(p =>
+            p.id === id ? { ...p, status: newStatus } : p
+        ));
+
+        // Refill columns immediately
+        const updatedProspects = allProspects.map(p =>
+            p.id === id ? { ...p, status: newStatus } : p
+        );
+        distributeProspects(updatedProspects);
+
+        // API Call
+        try {
+            await fetch('/api/prospects', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: Number(id), status: newStatus })
+            });
+        } catch (err) {
+            console.error("Failed to update status", err);
         }
     };
 
@@ -228,6 +261,7 @@ export default function CRM() {
                                 {/* Column Header */}
                                 <div className={`flex-none p-4 border-b border-white/5 flex items-center justify-between bg-white/5 transition-colors
                                     ${columnId === 'nouveau' && 'group-hover:bg-blue-500/5'}
+                                    ${columnId === 'retry' && 'group-hover:bg-orange-500/5'}
                                     ${columnId === 'contacted' && 'group-hover:bg-amber-500/5'}
                                     ${columnId === 'interested' && 'group-hover:bg-purple-500/5'}
                                     ${columnId === 'signed' && 'group-hover:bg-emerald-500/5'}
@@ -235,6 +269,7 @@ export default function CRM() {
                                     <div>
                                         <h2 className={`text-sm font-bold uppercase tracking-wider flex items-center gap-2
                                             ${columnId === 'nouveau' && 'text-blue-400'}
+                                            ${columnId === 'retry' && 'text-orange-400'}
                                             ${columnId === 'contacted' && 'text-amber-400'}
                                             ${columnId === 'interested' && 'text-purple-400'}
                                             ${columnId === 'signed' && 'text-emerald-400'}
@@ -248,7 +283,7 @@ export default function CRM() {
                                 </div>
 
                                 {/* Scrollable Content Area */}
-                                <Droppable droppableId={columnId}>
+                                <StrictModeDroppable droppableId={columnId}>
                                     {(provided, snapshot) => (
                                         <div
                                             {...provided.droppableProps}
@@ -264,61 +299,14 @@ export default function CRM() {
                                                             ref={provided.innerRef}
                                                             {...provided.draggableProps}
                                                             {...provided.dragHandleProps}
-                                                            className={`
-                                                                glass-card group/card relative rounded-xl p-4 cursor-grab
-                                                                hover:bg-slate-800/80 hover:border-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/10 
-                                                                ${snapshot.isDragging ? 'rotate-2 scale-105 shadow-2xl ring-1 ring-indigo-500/50 bg-[#1a1d24] z-50' : ''}
-                                                            `}
                                                             style={provided.draggableProps.style}
                                                         >
-                                                            {/* Card Content */}
-                                                            <div className="flex justify-between items-start mb-2">
-                                                                <h3 className="font-bold text-sm text-slate-200 truncate pr-2 group-hover/card:text-white transition-colors">{item.name}</h3>
-                                                                {item.rating > 0 && (
-                                                                    <div className={`flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold
-                                                                        ${item.rating >= 4.5 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-yellow-500/10 text-yellow-500'}
-                                                                    `}>
-                                                                        {item.rating}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-
-                                                            <div className="space-y-2 mb-3">
-                                                                <div className="flex items-center gap-2 text-xs text-slate-500 group-hover/card:text-slate-400 transition-colors">
-                                                                    <MapPin className="h-3 w-3 flex-shrink-0" />
-                                                                    <span className="truncate">{item.city}</span>
-                                                                </div>
-                                                                {item.website && (
-                                                                    <div className="flex items-center gap-2 text-xs">
-                                                                        <div className={`h-1.5 w-1.5 rounded-full ${item.has_website ? 'bg-emerald-500' : 'bg-slate-600'}`}></div>
-                                                                        <a href={item.website} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-indigo-400 hover:underline truncate transition-colors">
-                                                                            {new URL(item.website).hostname.replace('www.', '')}
-                                                                        </a>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-
-                                                            {/* Footer Actions */}
-                                                            <div className="flex items-center justify-between pt-3 border-t border-white/5 mt-2 opacity-60 group-hover/card:opacity-100 transition-opacity">
-                                                                <span className="text-[9px] uppercase font-bold text-slate-600 tracking-wider">
-                                                                    {item.category?.split(' ')[0]}
-                                                                </span>
-
-                                                                <div className="flex items-center gap-1">
-                                                                    <button
-                                                                        onClick={() => setSelectedProspect(item)}
-                                                                        className="p-1.5 rounded-lg hover:bg-indigo-500 text-slate-400 hover:text-white transition-all transform hover:scale-110 shadow-sm"
-                                                                        title="AI Roast"
-                                                                    >
-                                                                        <Mail className="h-3 w-3" />
-                                                                    </button>
-                                                                    {item.phone && (
-                                                                        <a href={`tel:${item.phone}`} className="p-1.5 rounded-lg hover:bg-emerald-500 text-slate-400 hover:text-white transition-all transform hover:scale-110 shadow-sm">
-                                                                            <Phone className="h-3 w-3" />
-                                                                        </a>
-                                                                    )}
-                                                                </div>
-                                                            </div>
+                                                            <CRMCard
+                                                                item={item}
+                                                                index={index}
+                                                                setSelectedProspect={setSelectedProspect}
+                                                                setCallProspect={setCallProspect}
+                                                            />
                                                         </div>
                                                     )}
                                                 </Draggable>
@@ -326,7 +314,7 @@ export default function CRM() {
                                             {provided.placeholder}
                                         </div>
                                     )}
-                                </Droppable>
+                                </StrictModeDroppable>
                             </div>
                         ))}
                     </div>
@@ -334,6 +322,14 @@ export default function CRM() {
 
                 {selectedProspect && (
                     <EmailGenerator prospect={selectedProspect} onClose={() => setSelectedProspect(null)} />
+                )}
+
+                {callProspect && (
+                    <CallModal
+                        prospect={callProspect}
+                        onClose={() => setCallProspect(null)}
+                        onUpdateStatus={handleStatusUpdate}
+                    />
                 )}
             </div>
         </div>

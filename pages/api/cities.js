@@ -11,39 +11,51 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Fetch unique cities efficiently
-        // Note: Supabase/PostgREST doesn't support "DISTINCT" directly in the JS client easily 
-        // without a stored procedure or raw SQL, but we can standard select and filter in code 
-        // OR us rpc if we had one. 
-        // A lighter approach for now: select city from prospects (head=false) to avoid heavy payload, 
-        // but distinct is tricky. 
-        // Alternative: Use a .csv() export or similar if huge, but for <100k rows, 
-        // selecting just the city column is manageable if cached.
+        let allCities = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
 
-        // Better Approach: Use specific column selection
-        const { data, error } = await supabase
-            .from('prospects')
-            .select('city')
-            .not('city', 'is', null)
-            .neq('city', '')
-            .order('city', { ascending: true }); // We'll dedupe in JS for now as Supabase JS .distinct() is flaky
+        // Loop to fetch ALL cities (Supabase limit is 1000 per request)
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('prospects')
+                .select('city')
+                .not('city', 'is', null)
+                .range(page * pageSize, (page + 1) * pageSize - 1);
 
-        if (error) throw error;
+            if (error) throw error;
 
-        // Deduplicate on server side to save bandwidth
-        const uniqueCities = [...new Set(data.map(p => p.city))]
-            .filter(city => {
-                if (!city) return false;
-                if (city.length > 30) return false; // Likely a restaurant name / sentence
-                if (/\d/.test(city)) return false;  // Has numbers (postal code or address)
-                if (!/^[a-zA-ZÀ-ÿ\s\-'’]+$/.test(city)) return false; // Has weird chars
-                return true;
-            })
-            .sort();
+            if (data.length > 0) {
+                allCities = allCities.concat(data.map(item => item.city));
+                if (data.length < pageSize) hasMore = false;
+                page++;
+            } else {
+                hasMore = false;
+            }
+        }
+
+        // Processing: Deduplicate, Clean, and Sort
+        const uniqueCities = [...new Set(
+            allCities
+                .filter(Boolean)
+                .map(c => {
+                    // Start Cleaning Logic
+                    // 1. Remove "邮政编码: 75014" etc. (Chinese characters + zip)
+                    // 2. Remove ZIP codes at the end if redundant "Paris 75001" -> "Paris" (Optional but sometimes clean)
+                    // Let's stick to user request: "Al Capri邮政编码..." needs cleaning.
+                    let clean = c;
+
+                    // Remove Chinese characters and following text
+                    clean = clean.replace(/[\u4e00-\u9fa5].*/g, '').trim();
+
+                    return clean;
+                })
+                .filter(c => c.length > 1) // Remove Garbage
+        )].sort();
 
         return res.status(200).json(uniqueCities);
     } catch (err) {
-        console.error("Cities API Error:", err);
         return res.status(500).json({ error: err.message });
     }
 }

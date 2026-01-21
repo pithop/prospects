@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import ProspectList from '@/components/ProspectList';
+import CityFilter from '@/components/CityFilter';
 import { LayoutDashboard, Users, Target, CheckCircle, Search, Filter, Plus, Upload, X } from 'lucide-react';
 
 export default function Home() {
@@ -14,6 +15,8 @@ export default function Home() {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [cities, setCities] = useState([]);
+  const [selectedCity, setSelectedCity] = useState('');
 
   const [newProspect, setNewProspect] = useState({
     name: '', phone: '', website: '', city: '', category: '', rating: 0, reviews: 0, notes: ''
@@ -24,13 +27,21 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
+  // Load cities on mount
+  useEffect(() => {
+    fetch('/api/cities')
+      .then(res => res.json())
+      .then(data => setCities(Array.isArray(data) ? data : []))
+      .catch(err => console.error('Failed to load cities', err));
+  }, []);
+
   // Debounce search to avoid too many requests
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       loadData(1);
     }, 500);
     return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery, filter]);
+  }, [searchQuery, filter, selectedCity]);
 
   const loadData = async (p = 1) => {
     try {
@@ -38,11 +49,10 @@ export default function Home() {
       const offset = (p - 1) * ITEMS_PER_PAGE;
 
       let url = `/api/prospects?limit=${ITEMS_PER_PAGE}&offset=${offset}`;
+      // Server-side filtering
       if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
-      // Note: Filter is currently client-side only for 'status', we could move it server-side too but let's keep it simple for now or fetch all and filter?
-      // Actually, if we paginate, client-side filter is broken. We moved search server-side.
-      // Let's assume filter is visual for now or we need to add filter param to API too? 
-      // For now, let's just make search work.
+      if (filter) url += `&status=${filter}`;
+      if (selectedCity && selectedCity !== 'All') url += `&city=${encodeURIComponent(selectedCity)}`;
 
       const [prospectsRes, statsRes] = await Promise.all([
         fetch(url),
@@ -167,34 +177,7 @@ export default function Home() {
     } catch (error) { showMessage('Error', 'error'); }
   };
 
-  const filteredProspects = prospects.filter(p => {
-    if (searchQuery) {
-      const searchLower = searchQuery.toLowerCase();
-      // Ensure we still respect the main filter logic even when searching?
-      // For now, global search across everything is usually more useful, BUT...
-      // If we want to strictly separate New vs Contacted, we should probably stick to it.
-      // Let's allow search to find ANYTHING for convenience, but default view is restricted.
-      return (
-        p.name?.toLowerCase().includes(searchLower) ||
-        p.city?.toLowerCase().includes(searchLower) ||
-        p.category?.toLowerCase().includes(searchLower)
-      );
-    }
 
-    // Default View: 'nouveau' (Everything that is NOT contacted)
-    if (filter === 'nouveau') return !p.contacted && (p.status === 'nouveau' || !p.status);
-
-    // Hot Leads (Sub-segment of Nouveau)
-    if (filter === 'contacter') return p.is_prospect_to_contact && !p.contacted;
-
-    // Website filter
-    if (filter === 'siteweb') return p.has_website && !p.contacted;
-
-    // If we want to see history
-    if (filter === 'contactes') return p.contacted;
-
-    return true;
-  });
 
   return (
     <div className="min-h-screen bg-background text-text font-sans selection:bg-primary/30">
@@ -243,12 +226,17 @@ export default function Home() {
         {/* Action Bar */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
           <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/50 p-1">
-            <FilterBtn active={filter === 'nouveau'} onClick={() => setFilter('nouveau')} label="Nouveaux" count={prospects.filter(p => !p.contacted).length} />
-            <FilterBtn active={filter === 'contacter'} onClick={() => setFilter('contacter')} label="Hot Leads 🔥" count={prospects.filter(p => p.is_prospect_to_contact && !p.contacted).length} />
-            <FilterBtn active={filter === 'contactes'} onClick={() => setFilter('contactes')} label="Déjà Contactés" count={prospects.filter(p => p.contacted).length} />
+            <FilterBtn active={filter === 'nouveau'} onClick={() => setFilter('nouveau')} label="Nouveaux" />
+            <FilterBtn active={filter === 'contacter'} onClick={() => setFilter('contacter')} label="Hot Leads 🔥" />
+            <FilterBtn active={filter === 'contactes'} onClick={() => setFilter('contactes')} label="Déjà Contactés" />
           </div>
 
           <div className="flex items-center gap-3">
+            <CityFilter
+              cities={cities}
+              selectedCity={selectedCity}
+              onChange={setSelectedCity}
+            />
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
@@ -329,7 +317,7 @@ export default function Home() {
           </div>
         ) : (
           <ProspectList
-            prospects={filteredProspects}
+            prospects={prospects}
             onMarkContacted={handleMarkContacted}
             onDelete={handleDelete}
           />
@@ -382,7 +370,7 @@ function StatCard({ title, value, icon: Icon, color, bg }) {
   )
 }
 
-function FilterBtn({ active, onClick, label, count }) {
+function FilterBtn({ active, onClick, label }) {
   return (
     <button
       onClick={onClick}
@@ -392,9 +380,6 @@ function FilterBtn({ active, onClick, label, count }) {
         }`}
     >
       {label}
-      <span className={`rounded-full px-2 py-0.5 text-[10px] ${active ? 'bg-slate-900 text-white' : 'bg-slate-900/50 text-slate-500'}`}>
-        {count}
-      </span>
     </button>
   )
 }

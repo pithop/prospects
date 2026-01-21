@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { Mail, Phone, MapPin } from 'lucide-react';
 
-const Card = memo(({ item, index, setSelectedProspect }) => {
+const Card = memo(({ item, index, setSelectedProspect, setCallProspect }) => {
     return (
         <Draggable draggableId={item.id.toString()} index={index}>
             {(provided, snapshot) => (
@@ -26,6 +26,20 @@ const Card = memo(({ item, index, setSelectedProspect }) => {
                             `}>
                                 {item.rating}
                             </div>
+                        )}
+                    </div>
+
+                    {/* 30s Brief Tags */}
+                    <div className="flex flex-wrap gap-1 mb-2">
+                        {!item.has_website && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">
+                                🚀 Opportunité (Pas de site)
+                            </span>
+                        )}
+                        {item.rating > 0 && item.rating < 4 && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/20">
+                                ⭐ Mal noté ({item.rating})
+                            </span>
                         )}
                     </div>
 
@@ -58,10 +72,15 @@ const Card = memo(({ item, index, setSelectedProspect }) => {
                             >
                                 <Mail className="h-3 w-3" />
                             </button>
+                            {/* Smart Call Button */}
                             {item.phone && (
-                                <a href={`tel:${item.phone}`} className="p-1.5 rounded-lg hover:bg-emerald-500 text-slate-400 hover:text-white transition-all transform hover:scale-110 shadow-sm">
+                                <button
+                                    onClick={() => setCallProspect(item)}
+                                    className="p-1.5 rounded-lg hover:bg-emerald-500 text-slate-400 hover:text-white transition-all transform hover:scale-110 shadow-sm"
+                                    title="Start Call Mode"
+                                >
                                     <Phone className="h-3 w-3" />
-                                </a>
+                                </button>
                             )}
                         </div>
                     </div>
