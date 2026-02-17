@@ -5,22 +5,12 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 );
 
-// Same thirdPartyDomains list as prospects.js
-const thirdPartyDomains = [
-  'facebook.com', 'instagram.com', 'linktr.ee', 'eatbu.com', 'wafflefactory.com',
-  'ubereats.com', 'deliveroo.fr', 'tripadvisor.fr', 'pagesjaunes.fr', 'crepetouch.com',
-  'just-eat.fr', 'thefork.fr', 'snapchat.com', 'tiktok.com', 'amorino.com',
-  'goo.gle', 'bit.ly', 'tastycloud.menu', 'octotable.com', 'm.facebook.com',
-  'webshop.fulleapps.io', 'surge.sh', 'jimdofree.com',
-  'byclickeat.fr', 'dood.com', 'delicity.com', 'belorder.com', 'e-monsite.com',
-  'commander1.com', 'wordpress.com', 'blogspot.com', 'sumupstore.com',
-  'bento.me', 'wixsite.com', 'google.com', 'zenchef.com'
-];
+import { thirdPartyDomains } from '../../utils/constants';
 
 export default async function handler(req, res) {
   // Security Check
   const secretKey = req.headers['x-secret-key'];
-  const VALID_KEY = process.env.PROSPECTING_SECRET_KEY || 'super_secret_prospecting_key_2026'; // Match the Python script
+  const VALID_KEY = process.env.PROSPECTING_SECRET_KEY;
 
   if (secretKey !== VALID_KEY) {
     return res.status(401).json({ error: 'Unauthorized: Invalid Secret Key' });

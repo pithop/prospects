@@ -41,25 +41,29 @@ ALTER TABLE prospects ENABLE ROW LEVEL SECURITY;
 -- (For production, use more restrictive policies based on user roles/auth)
 
 -- Policy: Allow SELECT for all users
+DROP POLICY IF EXISTS "Allow SELECT for all users" ON prospects;
 CREATE POLICY "Allow SELECT for all users" ON prospects
   FOR SELECT
   USING (true);
 
--- Policy: Allow INSERT for all users
-CREATE POLICY "Allow INSERT for all users" ON prospects
+-- Policy: Allow INSERT for authenticated users only
+DROP POLICY IF EXISTS "Allow INSERT for authenticated users only" ON prospects;
+CREATE POLICY "Allow INSERT for authenticated users only" ON prospects
   FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (auth.uid() IS NOT NULL);
 
--- Policy: Allow UPDATE for all users
-CREATE POLICY "Allow UPDATE for all users" ON prospects
+-- Policy: Allow UPDATE for authenticated users only
+DROP POLICY IF EXISTS "Allow UPDATE for authenticated users only" ON prospects;
+CREATE POLICY "Allow UPDATE for authenticated users only" ON prospects
   FOR UPDATE
-  USING (true)
-  WITH CHECK (true);
+  USING (auth.uid() IS NOT NULL)
+  WITH CHECK (auth.uid() IS NOT NULL);
 
--- Policy: Allow DELETE for all users
-CREATE POLICY "Allow DELETE for all users" ON prospects
+-- Policy: Allow DELETE for authenticated users only
+DROP POLICY IF EXISTS "Allow DELETE for authenticated users only" ON prospects;
+CREATE POLICY "Allow DELETE for authenticated users only" ON prospects
   FOR DELETE
-  USING (true);
+  USING (auth.uid() IS NOT NULL);
 
 -- 4. Create indexes for common queries (optional, improves performance)
 CREATE INDEX IF NOT EXISTS idx_prospects_city ON prospects(city);
@@ -77,3 +81,42 @@ CREATE INDEX IF NOT EXISTS idx_prospects_status ON prospects(status);
 -- 6. Go back to your Next.js app and restart: npm run dev
 -- 7. Try importing the JSON file again
 -- ============================================================================
+-- ============================================================================
+-- 5. Performance Optimization: RPC for Cities
+-- ============================================================================
+CREATE OR REPLACE FUNCTION get_distinct_cities()
+RETURNS TABLE (city text)
+LANGUAGE sql
+AS $$
+  SELECT DISTINCT city
+  FROM prospects
+  WHERE city IS NOT NULL AND city != ''
+  ORDER BY city;
+$$;
+
+-- ============================================================================
+-- 6. Analytics: RPC for Dashboard Stats
+-- ============================================================================
+CREATE OR REPLACE FUNCTION get_status_distribution()
+RETURNS TABLE (status text, count bigint)
+LANGUAGE sql
+AS $$
+  SELECT status, COUNT(*) as count
+  FROM prospects
+  GROUP BY status;
+$$;
+
+CREATE OR REPLACE FUNCTION get_top_cities()
+RETURNS TABLE (city text, count bigint)
+LANGUAGE sql
+AS $$
+  SELECT city, COUNT(*) as count
+  FROM prospects
+  WHERE city IS NOT NULL
+  GROUP BY city
+  ORDER BY count DESC
+  LIMIT 5;
+$$;
+
+-- Instructions: https://supabase.com/docs/guides/database/functions
+-- Run this entire script in Supabase SQL Editor.

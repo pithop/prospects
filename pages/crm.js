@@ -22,6 +22,7 @@ export default function CRM() {
     const [cityFilter, setCityFilter] = useState(''); // Empty initially
     const [cities, setCities] = useState([]);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const [selectedIds, setSelectedIds] = useState(new Set());
 
     // 1. Fetch Cities First
     useEffect(() => {
@@ -172,6 +173,53 @@ export default function CRM() {
         }
     };
 
+    const toggleSelection = (id) => {
+        const newSet = new Set(selectedIds);
+        if (newSet.has(id)) {
+            newSet.delete(id);
+        } else {
+            newSet.add(id);
+        }
+        setSelectedIds(newSet);
+    };
+
+    const handleExportCSV = () => {
+        // Data to export: either selected or ALL current filtered prospects
+        let dataToExport = [];
+        if (selectedIds.size > 0) {
+            dataToExport = allProspects.filter(p => selectedIds.has(p.id));
+        } else {
+            // Export all visible
+            dataToExport = allProspects;
+        }
+
+        if (dataToExport.length === 0) return alert("Nothing to export");
+
+        // Headers
+        const headers = ["ID", "Name", "Phone", "Website", "City", "Category", "Status", "Notes", "Rating"];
+        const rows = dataToExport.map(p => [
+            p.id,
+            `"${(p.name || '').replace(/"/g, '""')}"`,
+            `"${(p.phone || '').replace(/"/g, '""')}"`,
+            p.website || '',
+            `"${(p.city || '').replace(/"/g, '""')}"`,
+            `"${(p.category || '').replace(/"/g, '""')}"`,
+            p.status,
+            `"${(p.notes || '').replace(/"/g, '""')}"`,
+            p.rating
+        ]);
+
+        const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `prospects_export_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     if (loading && isInitialLoad) return (
         <div className="flex h-screen items-center justify-center bg-[#050505] text-slate-400">
             <div className="flex flex-col items-center gap-6">
@@ -221,6 +269,15 @@ export default function CRM() {
                                 className="bg-transparent border-none text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-0 w-48 ml-2"
                             />
                         </div>
+
+                        {/* Export Button */}
+                        <button
+                            onClick={handleExportCSV}
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2 rounded-full flex items-center gap-2 transition-all shadow-lg shadow-indigo-500/20"
+                        >
+                            <ExternalLink className="h-3 w-3" />
+                            {selectedIds.size > 0 ? `Export (${selectedIds.size})` : 'Export All'}
+                        </button>
 
                         {/* City Filter Pill - NOW PRIMARY CONTROL */}
                         <div className="relative group">
@@ -306,6 +363,8 @@ export default function CRM() {
                                                                 index={index}
                                                                 setSelectedProspect={setSelectedProspect}
                                                                 setCallProspect={setCallProspect}
+                                                                selected={selectedIds.has(item.id)}
+                                                                onSelect={toggleSelection}
                                                             />
                                                         </div>
                                                     )}

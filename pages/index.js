@@ -3,6 +3,10 @@ import Head from 'next/head';
 import ProspectList from '@/components/ProspectList';
 import CityFilter from '@/components/CityFilter';
 import { LayoutDashboard, Users, Target, CheckCircle, Search, Filter, Plus, Upload, X } from 'lucide-react';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
+import { Pie, Bar } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 export default function Home() {
   const [prospects, setProspects] = useState([]);
@@ -26,6 +30,57 @@ export default function Home() {
 
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
+
+  // Chart Configs
+  const pieData = {
+    labels: Object.keys(stats.statusDistribution || {}).map(k => k.charAt(0).toUpperCase() + k.slice(1)),
+    datasets: [
+      {
+        data: Object.values(stats.statusDistribution || {}),
+        backgroundColor: [
+          'rgba(59, 130, 246, 0.6)', // Blue (Nouveau/Retry)
+          'rgba(245, 158, 11, 0.6)', // Amber (Contacted)
+          'rgba(16, 185, 129, 0.6)', // Emerald (Signed/Interest)
+          'rgba(239, 68, 68, 0.6)',  // Red
+          'rgba(139, 92, 246, 0.6)', // Purple
+        ],
+        borderColor: [
+          'rgba(59, 130, 246, 1)',
+          'rgba(245, 158, 11, 1)',
+          'rgba(16, 185, 129, 1)',
+          'rgba(239, 68, 68, 1)',
+          'rgba(139, 92, 246, 1)',
+        ],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const barData = {
+    labels: (stats.topCities || []).map(c => c.city),
+    datasets: [
+      {
+        label: 'Prospects',
+        data: (stats.topCities || []).map(c => c.count),
+        backgroundColor: 'rgba(99, 102, 241, 0.5)',
+        borderColor: 'rgb(99, 102, 241)',
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#94a3b8' } },
+      title: { display: false }
+    },
+    scales: {
+      x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
+      y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }
+    }
+  };
+
 
   // Load cities on mount
   useEffect(() => {
@@ -222,6 +277,26 @@ export default function Home() {
           <StatCard title="Avec Site Web" value={stats.avecSiteWeb || 0} icon={LayoutDashboard} color="text-emerald-400" bg="bg-emerald-400/10" />
           <StatCard title="Contactés" value={stats.contactes || 0} icon={CheckCircle} color="text-indigo-400" bg="bg-indigo-400/10" />
         </div>
+
+        {/* CHARTS SECTION */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Status Distribution */}
+          <div className="glass-card p-6 rounded-xl border border-slate-700 bg-slate-800/40">
+            <h3 className="text-sm font-semibold text-slate-400 mb-4 uppercase tracking-wider">Pipeline Status</h3>
+            <div className="h-64 flex items-center justify-center">
+              {stats.statusDistribution ? <Pie data={pieData} options={chartOptions} /> : <p className="text-slate-500 text-sm">No data available</p>}
+            </div>
+          </div>
+
+          {/* Top Cities */}
+          <div className="glass-card p-6 rounded-xl border border-slate-700 bg-slate-800/40">
+            <h3 className="text-sm font-semibold text-slate-400 mb-4 uppercase tracking-wider">Top Cities</h3>
+            <div className="h-64">
+              {stats.topCities ? <Bar data={barData} options={chartOptions} /> : <p className="text-slate-500 text-sm">No data available</p>}
+            </div>
+          </div>
+        </div>
+
 
         {/* Action Bar */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">

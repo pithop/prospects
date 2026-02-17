@@ -11,50 +11,34 @@ export default async function handler(req, res) {
     }
 
     try {
-        let allCities = [];
-        let page = 0;
-        const pageSize = 1000;
-        let hasMore = true;
+        // PERFORMANCE: Use RPC instead of fetching all rows
+        // Requires 'get_distinct_cities' function in Supabase (see supabase_setup.sql)
+        const { data, error } = await supabase.rpc('get_distinct_cities');
 
-        // Loop to fetch ALL cities (Supabase limit is 1000 per request)
-        while (hasMore) {
-            const { data, error } = await supabase
-                .from('prospects')
-                .select('city')
-                .not('city', 'is', null)
-                .range(page * pageSize, (page + 1) * pageSize - 1);
-
-            if (error) throw error;
-
-            if (data.length > 0) {
-                allCities = allCities.concat(data.map(item => item.city));
-                if (data.length < pageSize) hasMore = false;
-                page++;
-            } else {
-                hasMore = false;
-            }
+        if (error) {
+            console.error('RPC Error:', error);
+            // Fallback for development if function doesn't exist yet
+            // This is the old slow method, kept just in case, but ideally we rely on RPC
+            // For now, let's just error out or return empty to force the optimization
+            // Actually, better to throw to see the issue
+            throw error;
         }
 
-        // Processing: Deduplicate, Clean, and Sort
-        const uniqueCities = [...new Set(
-            allCities
-                .filter(Boolean)
-                .map(c => {
-                    // Start Cleaning Logic
-                    // 1. Remove "邮政编码: 75014" etc. (Chinese characters + zip)
-                    // 2. Remove ZIP codes at the end if redundant "Paris 75001" -> "Paris" (Optional but sometimes clean)
-                    // Let's stick to user request: "Al Capri邮政编码..." needs cleaning.
-                    let clean = c;
+        // Optional post-processing if needed (the SQL does most of it)
+        // SQL handles distinct and not null.
+        // We might still want to clean garbage if not done in SQL (SQL did basic check)
 
-                    // Remove Chinese characters and following text
-                    clean = clean.replace(/[\u4e00-\u9fa5].*/g, '').trim();
+        const cleanCities = data
+            .map(item => item.city)
+            .filter(c => c && c.length > 1)
+            // Clean Chinese chars if any slipped through (though SQL could do regex)
+            .map(c => c.replace(/[\u4e00-\u9fa5].*/g, '').trim())
+            .filter(Boolean)
+            // Dedupe again just in case cleanup made them identical
+            .filter((v, i, a) => a.indexOf(v) === i)
+            .sort();
 
-                    return clean;
-                })
-                .filter(c => c.length > 1) // Remove Garbage
-        )].sort();
-
-        return res.status(200).json(uniqueCities);
+        return res.status(200).json(cleanCities);
     } catch (err) {
         return res.status(500).json({ error: err.message });
     }

@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { Mail, Phone, MapPin } from 'lucide-react';
 
-const Card = memo(({ item, index, setSelectedProspect, setCallProspect }) => {
+const Card = memo(({ item, index, setSelectedProspect, setCallProspect, selected, onSelect }) => {
     return (
         <Draggable draggableId={item.id.toString()} index={index}>
             {(provided, snapshot) => (
@@ -14,11 +14,29 @@ const Card = memo(({ item, index, setSelectedProspect, setCallProspect }) => {
                         glass-card group/card relative rounded-xl p-4 cursor-grab
                         hover:bg-slate-800/80 hover:border-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/10 
                         ${snapshot.isDragging ? 'rotate-2 scale-105 shadow-2xl ring-1 ring-indigo-500/50 bg-[#1a1d24] z-50' : ''}
+                        ${selected ? 'ring-2 ring-indigo-500 bg-indigo-500/10' : ''}
                     `}
                     style={provided.draggableProps.style}
+                    onClick={(e) => {
+                        // Allow clicking card to select if ctrl key is held or if select mode active?
+                        // For now, let's rely on specific checkbox click to avoid interfering with DnD
+                    }}
                 >
+                    {/* Selection Checkbox */}
+                    <div className="absolute top-4 right-4 z-20 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                        <input
+                            type="checkbox"
+                            checked={selected || false}
+                            onChange={(e) => {
+                                e.stopPropagation();
+                                onSelect(item.id);
+                            }}
+                            className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-indigo-500 focus:ring-indigo-500"
+                        />
+                    </div>
+
                     {/* Card Content */}
-                    <div className="flex justify-between items-start mb-2">
+                    <div className="flex justify-between items-start mb-2 pr-6">
                         <h3 className="font-bold text-sm text-slate-200 truncate pr-2 group-hover/card:text-white transition-colors">{item.name}</h3>
                         {item.rating > 0 && (
                             <div className={`flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold

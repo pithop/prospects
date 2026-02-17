@@ -5,17 +5,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 );
 
-// Domaines tiers (pour identifier prospects à contacter)
-const thirdPartyDomains = [
-  'facebook.com', 'instagram.com', 'linktr.ee', 'eatbu.com', 'wafflefactory.com',
-  'ubereats.com', 'deliveroo.fr', 'tripadvisor.fr', 'pagesjaunes.fr', 'crepetouch.com',
-  'just-eat.fr', 'thefork.fr', 'snapchat.com', 'tiktok.com', 'amorino.com',
-  'goo.gle', 'bit.ly', 'tastycloud.menu', 'octotable.com', 'm.facebook.com',
-  'webshop.fulleapps.io', 'surge.sh', 'jimdofree.com',
-  'byclickeat.fr', 'dood.com', 'delicity.com', 'belorder.com', 'e-monsite.com',
-  'commander1.com', 'wordpress.com', 'blogspot.com', 'sumupstore.com',
-  'bento.me', 'wixsite.com', 'google.com', 'zenchef.com'
-];
+import { thirdPartyDomains } from '../../utils/constants';
 
 export default async function handler(req, res) {
   const createTableSQL = `-- Run this SQL in Supabase SQL editor to create the \`prospects\` table\nCREATE TABLE prospects (\n  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,\n  name VARCHAR(255) NOT NULL,\n  phone VARCHAR(50),\n  website VARCHAR(512),\n  city VARCHAR(255),\n  category VARCHAR(100),\n  rating NUMERIC(3,1) DEFAULT 0,\n  reviews INTEGER DEFAULT 0,\n  notes TEXT,\n  is_third_party BOOLEAN DEFAULT FALSE,\n  has_website BOOLEAN DEFAULT FALSE,\n  is_prospect_to_contact BOOLEAN DEFAULT FALSE,\n  contacted BOOLEAN DEFAULT FALSE,\n  contact_date TIMESTAMP,\n  status VARCHAR(50) DEFAULT 'nouveau',\n  created_at TIMESTAMP DEFAULT NOW(),\n  updated_at TIMESTAMP DEFAULT NOW()\n);`;

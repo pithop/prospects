@@ -64,7 +64,16 @@ THREADS = 1
 
 # API Configuration
 API_URL = "https://www.prospecthub.app/api/import"
-API_SECRET_KEY = "super_secret_prospecting_key_2026" # CHANGE THIS
+API_SECRET_KEY = os.environ.get("PROSPECTING_SECRET_KEY")
+if not API_SECRET_KEY:
+    logging.warning("PROSPECTING_SECRET_KEY not set in environment. Using default for dev (if applicable) or failing.")
+    # For safety, we can either fail or default to the old key with a warning if the user hasn't set it yet locally.
+    # Given the strict security requirement, we should probably fail or warn heavily.
+    # Let's try to load from .env file using python-dotenv if available, or just fail.
+    # Since we can't easily add dependencies, we'll just respect the env var.
+    # But to prevent immediate breakage if they run it without env, I will add a fallback but log it visibly.
+    # actually user said "Remplace toutes les chaînes codées en dur", so NO fallback in code is better.
+    raise ValueError("PROSPECTING_SECRET_KEY environment variable is not set.")
 
 # ================= SETUP LOGGING =================
 logging.basicConfig(
