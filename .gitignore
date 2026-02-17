@@ -45,3 +45,4 @@ last_city_index.txt
 Automating Google Maps Scraping For France.txt
 Prospecting French Restaurants Online.md
 supabase_setup.sql
+.env.local.example
