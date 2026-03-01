@@ -5,37 +5,60 @@ export default function ProspectList({ prospects, onMarkContacted, onDelete }) {
     const [selectedProspect, setSelectedProspect] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [promptType, setPromptType] = useState('internal');
 
     const handleDeepResearch = (prospect) => {
         setSelectedProspect(prospect);
+        setPromptType('internal');
         setShowModal(true);
         setCopied(false);
     };
 
-    const generatePrompt = (p) => {
+    const generateClientReportPrompt = (p) => {
         if (!p) return "";
-        return `**RÔLE :** Tu es un chercheur commercial d'élite pour une agence digitale.
-**TÂCHE :** Effectue une "Recherche Approfondie" sur ce prospect spécifique pour préparer un appel ou un email de prospection.
+        return `**RÔLE :** Tu es un consultant de haut niveau en stratégie digitale spécialisé dans les commerces locaux.
+**TÂCHE :** Rédige un audit digital éclair et percutant, destiné à être lu DIRECTEMENT par le propriétaire de ce commerce. L'objectif est de lui faire réaliser son potentiel inexploité et de lui montrer notre expertise. Le ton doit être professionnel, bienveillant mais urgent.
+
 **DÉTAILS DU PROSPECT :**
+- **Nom de l'établissement :** ${p.name}
+- **Ville :** ${p.city}
+- **Secteur / Catégorie :** ${p.category}
+- **Statut du site web :** ${p.website || "AUCUN SITE WEB DÉTECTÉ"}
+- **Réputation (Google) :** ${p.rating} étoiles sur 5 (${p.reviews} avis)
+
+**STRUCTURE EXACTE DU RAPPORT À PRODUIRE :**
+1. **Introduction Accrocheuse :** Une phrase de politesse qui valorise leur commerce (basé sur leur catégorie/note).
+2. **Ce Qui Fonctionne (Le Positif) :** Un point fort évident (ex: le nombre d'avis montre que c'est une adresse populaire).
+3. **Le Diagnostic (Le Problème) :** Identifie le frein principal à leur croissance actuellement. (${!p.website ? "L'absence de site internet qui envoie les clients chez les concurrents." : "L'optimisation de la conversion ou l'expérience utilisateur du site actuel."})
+4. **Le Manque à Gagner (La Douleur) :** Concrètement, qu'est-ce que ce problème leur coûte tous les jours en chiffre d'affaires ? (Sois spécifique à leur métier).
+5. **Notre Recommandation "Quick-Win" :** Une solution claire et immédiate que nous pouvons implémenter pour eux.
+
+**CONTRAINTES :** Le texte final doit être formaté proprement (gras, bullet points), prêt à être copié-collé dans un email ou sur LinkedIn. Il doit parler directement au client (utilise le vouvoiement).`;
+    };
+
+    const generateInternalStrategyPrompt = (p) => {
+        if (!p) return "";
+        return `**RÔLE :** Tu es le mentor des meilleurs "Closers" B2B. Tu prépares ton commercial avant un appel à froid (Cold Call) décisif.
+**TÂCHE :** Crée une fiche de préparation ("Battle Card") ultra-concise, psychologique et tactique pour attaquer ce prospect avec un taux de conversion maximum.
+
+**DÉTAILS DU PROSPECT (CIBLE) :**
 - **Nom :** ${p.name}
-- **Adresse :** ${p.address || "N/A"}
 - **Ville :** ${p.city}
 - **Catégorie :** ${p.category}
-- **Site Web :** ${p.website || "PAS DE SITE WEB (Utilise Google Maps/Facebook)"}
-- **Note Actuelle :** ${p.rating} étoiles (${p.reviews} avis)
+- **Site Web :** ${p.website || "PAS DE SITE"}
+- **Notes :** ${p.rating} étoiles (${p.reviews} avis)
 
-**SORTIE REQUISE :**
-1.  **Bilan de Santé Numérique :** Analyse rapidement leur présence en ligne. Ont-ils un site ? Est-il mobile-friendly ? Ont-ils un lien vers leur menu ?
-2.  **L'Accroche ("Hook") :** Trouve UNE chose spécifique à mentionner (ex: "J'ai vu votre avis récent sur...", "J'ai remarqué que votre menu est un PDF...").
-3.  **Le Point de Douleur ("Pain Point") :** Basé sur leur catégorie (${p.category}) et leur note, quel est probablement leur plus gros problème ? (ex: Commissions ? Tables vides le mardi soir ?)
-4.  **Le Pitch :** Rédige une "Ouverture de Script" de 3 phrases spécifiquement pour ce propriétaire d'entreprise.
-5.  **Angle de Vente :** ${!p.website ? "Ils n'ont PAS DE SITE WEB. Concentre-toi sur la 'Souveraineté Numérique' et le 'Risque Google Business Profile'." : "Ils ont un site web. Concentre-toi sur l'Optimisation de la Conversion' ou la 'Commande en Ligne'."}
+**LIVRABLES POUR LE COMMERCIAL (DOIT ÊTRE LU EN 30 SECONDES) :**
+1. **L'Icebreaker (L'Accroche) :** Trouve LA phrase d'ouverture ultra-spécifique (ex: "J'ai lu votre dernier avis", "J'ai cherché un [catégorie] à [ville] et j'ai remarqué un détail frustrant...") pour retenir son attention dès les 10 premières secondes.
+2. **Le Point de Saignement (Pain Point) :** Quel est son pire cauchemar actuel ? (ex: Payer 30% de commission à UberEats, les tables vides le mardi, les clients qui vont chez le voisin car ils ne le trouvent pas sur Google).
+3. **Le Pitch Sniper :** Un argumentaire éclair de 3 phrases, incisif, basé sur CE prospect précisément. Pas de blabla, que du ROI. Angle suggéré : ${!p.website ? "La souveraineté numérique (ne pas dépendre que des plateformes)." : "Maximiser la valeur de chaque visiteur du site."}
+4. **Le Bouclier (Traitement des Objections) :** Donne-moi les 2 objections les plus probables qu'il va me balancer (ex: "J'ai pas le temps", "Ça coûte trop cher") et la réplique parfaite et inattendue pour chacune.
 
-**Garde cela concis, exploitable et prêt à être lu par un commercial en 30 secondes.**`;
+**CONTRAINTES :** Format "Commandos" (Bullet points, phrases très courtes, mots percutants). Écris pour le commercial.`;
     };
 
     const copyToClipboard = () => {
-        const text = generatePrompt(selectedProspect);
+        const text = promptType === 'internal' ? generateInternalStrategyPrompt(selectedProspect) : generateClientReportPrompt(selectedProspect);
         navigator.clipboard.writeText(text);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
@@ -173,13 +196,35 @@ export default function ProspectList({ prospects, onMarkContacted, onDelete }) {
                         </div>
 
                         <div className="p-6">
+                            {/* Tabs for Prompt Types */}
+                            <div className="flex items-center gap-4 mb-6 border-b border-slate-700/50 pb-4">
+                                <button
+                                    onClick={() => setPromptType('internal')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${promptType === 'internal'
+                                            ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                        }`}
+                                >
+                                    Stratégie Interne (Appel)
+                                </button>
+                                <button
+                                    onClick={() => setPromptType('client')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${promptType === 'client'
+                                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                        }`}
+                                >
+                                    Rapport pour le Client
+                                </button>
+                            </div>
+
                             <p className="mb-4 text-sm text-slate-400">
-                                Copy this prompt and paste it into Gemini/ChatGPT to get a full sales briefing.
+                                Copie ce prompt et colle-le dans ChatGPT ou Claude pour générer ton contenu.
                             </p>
 
                             <div className="relative rounded-lg bg-slate-950 p-4 font-mono text-sm text-slate-300 border border-slate-800">
                                 <pre className="whitespace-pre-wrap break-words">
-                                    {generatePrompt(selectedProspect)}
+                                    {promptType === 'internal' ? generateInternalStrategyPrompt(selectedProspect) : generateClientReportPrompt(selectedProspect)}
                                 </pre>
 
                                 <button
