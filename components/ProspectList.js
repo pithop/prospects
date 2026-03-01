@@ -227,7 +227,7 @@ export default function ProspectList({ prospects, onMarkContacted, onDelete }) {
                             </p>
 
                             <div className="relative rounded-lg bg-slate-950 p-4 font-mono text-sm text-slate-300 border border-slate-800">
-                                <pre className="whitespace-pre-wrap break-words">
+                                <pre className="whitespace-pre-wrap break-words max-h-[50vh] overflow-y-auto pr-4 custom-scrollbar">
                                     {promptType === 'internal' ? generateInternalStrategyPrompt(selectedProspect) : generateClientReportPrompt(selectedProspect)}
                                 </pre>
 
