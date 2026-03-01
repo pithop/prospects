@@ -17,7 +17,7 @@ export default function ProspectList({ prospects, onMarkContacted, onDelete }) {
     const generateClientReportPrompt = (p) => {
         if (!p) return "";
         return `**RÔLE :** Tu es un consultant de haut niveau en stratégie digitale spécialisé dans les commerces locaux.
-**TÂCHE :** Rédige un audit digital éclair et percutant, destiné à être lu DIRECTEMENT par le propriétaire de ce commerce. L'objectif est de lui faire réaliser son potentiel inexploité et de lui montrer notre expertise. Le ton doit être professionnel, bienveillant mais urgent.
+**TÂCHE :** Rédige un audit digital éclair et percutant, destiné à être lu DIRECTEMENT par le propriétaire de ce commerce. L'objectif est de lui faire réaliser de manière urgente son manque à gagner actuel et de lui démontrer les gains financiers exacts qu'il obtiendra en travaillant avec nous. Le ton doit être professionnel, extrêmement persuasif, rassurant et axé sur les résultats (ROI garanti).
 
 **DÉTAILS DU PROSPECT :**
 - **Nom de l'établissement :** ${p.name}
@@ -27,13 +27,17 @@ export default function ProspectList({ prospects, onMarkContacted, onDelete }) {
 - **Réputation (Google) :** ${p.rating} étoiles sur 5 (${p.reviews} avis)
 
 **STRUCTURE EXACTE DU RAPPORT À PRODUIRE :**
-1. **Introduction Accrocheuse :** Une phrase de politesse qui valorise leur commerce (basé sur leur catégorie/note).
-2. **Ce Qui Fonctionne (Le Positif) :** Un point fort évident (ex: le nombre d'avis montre que c'est une adresse populaire).
-3. **Le Diagnostic (Le Problème) :** Identifie le frein principal à leur croissance actuellement. (${!p.website ? "L'absence de site internet qui envoie les clients chez les concurrents." : "L'optimisation de la conversion ou l'expérience utilisateur du site actuel."})
-4. **Le Manque à Gagner (La Douleur) :** Concrètement, qu'est-ce que ce problème leur coûte tous les jours en chiffre d'affaires ? (Sois spécifique à leur métier).
-5. **Notre Recommandation "Quick-Win" :** Une solution claire et immédiate que nous pouvons implémenter pour eux.
+1. **Introduction Accrocheuse :** Une phrase de politesse qui valorise leur commerce (basé sur l'excellente note ou le nombre d'avis) pour flatter leur ego d'entrepreneur.
+2. **Le Problème Qui Coûte Cher :** Identifie le point de friction majeur. S'ils n'ont pas de site web, insiste lourdement sur le fait que leurs clients potentiels partent chez le concurrent le plus proche qui est visible en ligne.
+3. **Le Manque à Gagner (Les Pertes Actuelles) :** Fais une estimation choc mais réaliste de l'argent qu'ils perdent chaque mois par manque de visibilité ou d'optimisation.
+4. **Le Gisement de Croissance (LES GAINS POTENTIELS) :** C'est la partie la plus importante. Tu dois lister sous forme de points (bullet points) précis les futurs GAGNANTS si on leur crée un site web performant :
+   - Combien de NOUVEAUX clients par mois (donne une estimation chiffrée basée sur leur ville/secteur).
+   - Combien de chiffre d'affaires supplémentaire (en €) cela représente sur une année (fais un calcul simple : X clients x Y€ panier moyen = Z€ garantis).
+   - L'augmentation de la valorisation de leur fonds de commerce.
+   - Rassure-les : assure-leur que cet investissement est le plus rentable qu'ils puissent faire pour leur établissement aujourd'hui.
+5. **Notre Recommandation "Quick-Win" :** Propose notre solution claire (création de site/tunnel de vente) comme l'évidence absolue pour capturer ce chiffre d'affaires perdu.
 
-**CONTRAINTES :** Le texte final doit être formaté proprement (gras, bullet points), prêt à être copié-collé dans un email ou sur LinkedIn. Il doit parler directement au client (utilise le vouvoiement).`;
+**CONTRAINTES :** Le texte final doit être formaté proprement (gras, bullet points), ultra persuasif, et prêt à être envoyé. Parle-leur directement (vouvoiement). Sois convaincant sur le fait qu'ils VONT gagner de l'argent.`;
     };
 
     const generateInternalStrategyPrompt = (p) => {
@@ -201,8 +205,8 @@ export default function ProspectList({ prospects, onMarkContacted, onDelete }) {
                                 <button
                                     onClick={() => setPromptType('internal')}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${promptType === 'internal'
-                                            ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
-                                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                        ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
                                         }`}
                                 >
                                     Stratégie Interne (Appel)
@@ -210,8 +214,8 @@ export default function ProspectList({ prospects, onMarkContacted, onDelete }) {
                                 <button
                                     onClick={() => setPromptType('client')}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${promptType === 'client'
-                                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
                                         }`}
                                 >
                                     Rapport pour le Client
