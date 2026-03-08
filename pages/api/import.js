@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     const toInsert = items.map((it) => {
       const name = it.name || it.title || it.nom || it.place || it.place_id || '';
       const phone = it.phone || it.telephone || it.tel || it.phone_number || null;
-      const website = it.website || it.site || it.url || null;
+      const website = it.web_site || it.website || it.site || it.url || null;
       // category: prefer main_category, then first of categories if comma-separated, then generic
       let category = 'Non spécifié';
       if (it.main_category) category = it.main_category;
