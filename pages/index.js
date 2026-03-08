@@ -5,6 +5,7 @@ import CityFilter from '@/components/CityFilter';
 import { LayoutDashboard, Users, Target, CheckCircle, Search, Filter, Plus, Upload, X } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
+import GeoSearch from '@/components/GeoSearch';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
@@ -21,6 +22,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [cities, setCities] = useState([]);
   const [selectedCity, setSelectedCity] = useState('');
+  const [geoFilter, setGeoFilter] = useState(null);
 
   const [newProspect, setNewProspect] = useState({
     name: '', phone: '', website: '', city: '', category: '', rating: 0, reviews: 0, notes: ''
@@ -96,18 +98,23 @@ export default function Home() {
       loadData(1);
     }, 500);
     return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery, filter, selectedCity]);
+  }, [searchQuery, filter, selectedCity, geoFilter]);
 
   const loadData = async (p = 1) => {
     try {
       setLoading(true);
       const offset = (p - 1) * ITEMS_PER_PAGE;
 
-      let url = `/api/prospects?limit=${ITEMS_PER_PAGE}&offset=${offset}`;
-      // Server-side filtering
-      if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
-      if (filter) url += `&status=${filter}`;
-      if (selectedCity && selectedCity !== 'All') url += `&city=${encodeURIComponent(selectedCity)}`;
+      let url = `/api/prospects?limit=${geoFilter ? (geoFilter.limit || ITEMS_PER_PAGE) : ITEMS_PER_PAGE}&offset=${offset}`;
+
+      if (geoFilter) {
+        url += `&lat=${geoFilter.lat}&lng=${geoFilter.lng}&radius=${geoFilter.radius}`;
+      } else {
+        // Server-side filtering
+        if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+        if (filter) url += `&status=${filter}`;
+        if (selectedCity && selectedCity !== 'All') url += `&city=${encodeURIComponent(selectedCity)}`;
+      }
 
       const [prospectsRes, statsRes] = await Promise.all([
         fetch(url),
@@ -276,6 +283,24 @@ export default function Home() {
           <StatCard title="Leads Chauds" value={stats.prospectContacter || 0} icon={Target} color="text-red-400" bg="bg-red-400/10" />
           <StatCard title="Avec Site Web" value={stats.avecSiteWeb || 0} icon={LayoutDashboard} color="text-emerald-400" bg="bg-emerald-400/10" />
           <StatCard title="Contactés" value={stats.contactes || 0} icon={CheckCircle} color="text-indigo-400" bg="bg-indigo-400/10" />
+        </div>
+
+        {/* GeoSearch UI */}
+        <div className="mb-8">
+          <GeoSearch onSearch={(params) => setGeoFilter(params)} />
+          {geoFilter && (
+            <div className="flex justify-between items-center bg-indigo-500/10 border border-indigo-500/30 p-3 rounded-lg text-sm text-indigo-300">
+              <span>
+                📍 Recherche active autour de <strong>{geoFilter.name || 'ma position'}</strong> ({geoFilter.radius}km) - {prospects.length} résultats trouvés
+              </span>
+              <button
+                onClick={() => setGeoFilter(null)}
+                className="text-white bg-red-500/20 hover:bg-red-500/40 px-3 py-1 rounded transition-colors"
+              >
+                Annuler la géolocalisation
+              </button>
+            </div>
+          )}
         </div>
 
         {/* CHARTS SECTION */}

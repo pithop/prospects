@@ -6,7 +6,6 @@ import { LayoutDashboard, Users, Mail, Phone, ExternalLink, MapPin, Search, Filt
 import EmailGenerator from '@/components/EmailGenerator';
 import CallModal from '@/components/CallModal';
 import CRMCard from '@/components/CRMCard';
-import GeoSearch from '@/components/GeoSearch';
 
 export default function CRM() {
     const [allProspects, setAllProspects] = useState([]); // Store fetched data
@@ -24,21 +23,18 @@ export default function CRM() {
     const [cities, setCities] = useState([]);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [selectedIds, setSelectedIds] = useState(new Set());
-    const [geoFilter, setGeoFilter] = useState(null); // Local state for GeoSearch {lat, lng, radius, limit, name}
 
     // 1. Fetch Cities First
     useEffect(() => {
         fetchCities();
     }, []);
 
-    // 2. Fetch Prospects when City or GeoFilter Changes
+    // 2. Fetch Prospects when City Changes
     useEffect(() => {
-        if (geoFilter) {
-            fetchGeoProspects(geoFilter);
-        } else if (cityFilter) {
+        if (cityFilter) {
             fetchProspects(cityFilter);
         }
-    }, [cityFilter, geoFilter]);
+    }, [cityFilter]);
 
     // 3. Re-distribute locally only when search query changes (lightweight)
     useEffect(() => {
@@ -59,24 +55,6 @@ export default function CRM() {
             }
         } catch (err) {
             console.error("Failed to load cities", err);
-            setLoading(false);
-        }
-    };
-
-    const fetchGeoProspects = async (geoParams) => {
-        setLoading(true);
-        try {
-            const currentLimit = geoParams.limit || 50;
-            const res = await fetch(`/api/prospects?lat=${geoParams.lat}&lng=${geoParams.lng}&radius=${geoParams.radius}&limit=${currentLimit}`);
-            const data = await res.json();
-            const prospects = Array.isArray(data) ? data : data.data;
-
-            setAllProspects(prospects || []);
-            distributeProspects(prospects || []);
-            setLoading(false);
-            setIsInitialLoad(false);
-        } catch (err) {
-            console.error("Failed to load geo CRM data", err);
             setLoading(false);
         }
     };
@@ -274,7 +252,7 @@ export default function CRM() {
                                 ProspectHub <span className="text-indigo-500">Pipeline</span>
                             </h1>
                             <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">
-                                {allProspects.length} Leads {geoFilter ? `autour de ${geoFilter.name || 'moi'} (${geoFilter.radius}km)` : `in ${cityFilter}`}
+                                {allProspects.length} Leads in {cityFilter}
                             </p>
                         </div>
                     </div>
@@ -302,26 +280,14 @@ export default function CRM() {
                         </button>
 
                         {/* City Filter Pill - NOW PRIMARY CONTROL */}
-                        <div className="relative group flex items-center gap-2">
-                            {geoFilter && (
-                                <button
-                                    onClick={() => setGeoFilter(null)}
-                                    className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold px-3 py-1.5 rounded-full transition-all"
-                                >
-                                    Annuler Géo
-                                </button>
-                            )}
+                        <div className="relative group">
                             <div className="flex items-center bg-indigo-500/10 border border-indigo-500/30 rounded-full px-4 py-1.5 hover:bg-indigo-500/20 transition-all">
                                 <Filter className="h-3 w-3 text-indigo-400 mr-2" />
                                 <select
-                                    value={geoFilter ? '' : cityFilter}
-                                    onChange={(e) => {
-                                        setGeoFilter(null);
-                                        setCityFilter(e.target.value);
-                                    }}
+                                    value={cityFilter}
+                                    onChange={(e) => setCityFilter(e.target.value)}
                                     className="bg-transparent border-none text-sm text-indigo-100 focus:outline-none focus:ring-0 appearance-none cursor-pointer pr-4 font-bold"
                                 >
-                                    {geoFilter && <option value="" disabled className="bg-slate-900 hidden">Mode Géolocalisation</option>}
                                     {cities.map(c => <option key={c} value={c} className="bg-slate-900">{c}</option>)}
                                 </select>
                             </div>
@@ -343,10 +309,6 @@ export default function CRM() {
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
                     <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] mix-blend-screen animate-pulse duration-[10000ms]"></div>
                     <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] mix-blend-screen animate-pulse duration-[7000ms]"></div>
-                </div>
-
-                <div className="mx-auto max-w-[1920px] relative z-10">
-                    <GeoSearch onSearch={(params) => setGeoFilter(params)} />
                 </div>
 
                 <DragDropContext onDragEnd={onDragEnd}>
