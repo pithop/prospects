@@ -60,7 +60,7 @@ SEARCH_NICHE = "Restaurant"
 
 # Scraper Settings
 DEPTH = 2
-THREADS = 1
+THREADS = 4
 
 # API Configuration
 API_URL = "https://www.prospecthub.app/api/import"
@@ -147,12 +147,11 @@ def run_scraper_job(city_data, job_id):
             
         output_file = os.path.join(OUTPUT_DIR, f"{city_data['zip']}_{city_data['name']}_{niche.replace(' ', '_')}.json")
         
-        # Depth 5 is good balance
         cmd = [
             SCRAPER_BINARY,
             "-input", temp_input,
             "-results", output_file,
-            "-depth", "5", 
+            "-depth", str(DEPTH), 
             "-json",
             "-c", str(THREADS)
         ]
@@ -160,19 +159,16 @@ def run_scraper_job(city_data, job_id):
         logging.info(f"Job {job_id}: Scraping '{query}'...")
         
         try:
-             # run scraper
-             res = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+             # run scraper (capture_output=False to show live progress in console!)
+             res = subprocess.run(cmd, capture_output=False, timeout=600)
              
              if res.returncode != 0:
                  logging.error(f"Scraper command failed with code {res.returncode}")
-                 logging.error(f"Stderr: {res.stderr}")
              
              if os.path.exists(output_file) and os.path.getsize(output_file) > 50:
                  process_and_upload(output_file, city_data)
              else:
                  logging.warning(f"No results found for {niche} in {city_data['name']} (File empty or missing)")
-                 if res.stderr:
-                     logging.warning(f"Scraper Stderr: {res.stderr}")
 
         except Exception as e:
              logging.error(f"Job {job_id} Niche {niche} Failed: {e}")
