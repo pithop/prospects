@@ -82,6 +82,9 @@ export default async function handler(req, res) {
       const popular_times = it.popular_times || null;
       const best_time_to_call = it.best_time_to_call || null;
 
+      const latitude = it.latitude || null;
+      const longitude = it.longitude || it.longtitude || null; // Handling the 'longtitude' typo in the JSON data
+
       const isThirdParty = website ? thirdPartyDomains.some(domain => website.includes(domain)) : false;
       const hasRealWebsite = website && !isThirdParty;
       const isProspect = !hasRealWebsite;
@@ -104,14 +107,16 @@ export default async function handler(req, res) {
         notes,
         contacted: false,
         contact_date: null,
-        status: 'nouveau'
+        status: 'nouveau',
+        latitude,
+        longitude
       };
     });
 
     const { data, error } = await supabase.from('prospects').insert(toInsert).select();
     if (error) {
       const msg = error.message || '';
-      const createTableSQL = `-- Run this SQL in Supabase SQL editor to create the \`prospects\` table\nCREATE TABLE prospects (\n  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,\n  name VARCHAR(255) NOT NULL,\n  phone VARCHAR(50),\n  website VARCHAR(512),\n  city VARCHAR(255),\n  category VARCHAR(100),\n  rating NUMERIC(3,1) DEFAULT 0,\n  reviews INTEGER DEFAULT 0,\n  notes TEXT,\n  is_third_party BOOLEAN DEFAULT FALSE,\n  has_website BOOLEAN DEFAULT FALSE,\n  is_prospect_to_contact BOOLEAN DEFAULT FALSE,\n  contacted BOOLEAN DEFAULT FALSE,\n  contact_date TIMESTAMP,\n  status VARCHAR(50) DEFAULT 'nouveau',\n  created_at TIMESTAMP DEFAULT NOW(),\n  updated_at TIMESTAMP DEFAULT NOW()\n);`;
+      const createTableSQL = `-- Run this SQL in Supabase SQL editor to create the \`prospects\` table\nCREATE TABLE prospects (\n  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,\n  name VARCHAR(255) NOT NULL,\n  phone VARCHAR(50),\n  website VARCHAR(512),\n  city VARCHAR(255),\n  category VARCHAR(100),\n  address VARCHAR(512),\n  latitude NUMERIC,\n  longitude NUMERIC,\n  rating NUMERIC(3,1) DEFAULT 0,\n  reviews INTEGER DEFAULT 0,\n  notes TEXT,\n  is_third_party BOOLEAN DEFAULT FALSE,\n  has_website BOOLEAN DEFAULT FALSE,\n  is_prospect_to_contact BOOLEAN DEFAULT FALSE,\n  contacted BOOLEAN DEFAULT FALSE,\n  contact_date TIMESTAMP,\n  status VARCHAR(50) DEFAULT 'nouveau',\n  created_at TIMESTAMP DEFAULT NOW(),\n  updated_at TIMESTAMP DEFAULT NOW()\n);`;
       if (/Could not find the table|relation .*prospects.* does not exist|does not exist/i.test(msg)) {
         return res.status(500).json({ error: 'Table `prospects` not found in your Supabase project. Create it using the provided SQL.', sql: createTableSQL });
       }

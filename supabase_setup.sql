@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS prospects (
   city VARCHAR(255),
   category VARCHAR(100),
   address VARCHAR(512),
+  latitude NUMERIC,
+  longitude NUMERIC,
   google_maps_url TEXT,
   rating NUMERIC(3,1) DEFAULT 0,
   reviews INTEGER DEFAULT 0,
@@ -120,3 +122,56 @@ $$;
 
 -- Instructions: https://supabase.com/docs/guides/database/functions
 -- Run this entire script in Supabase SQL Editor.
+
+-- ============================================================================
+-- 7. Geolocation: RPC for Nearby Prospects (Haversine Formula)
+-- ============================================================================
+-- NOTE: If the pg_trgm or postgis extension is available, those are better, 
+-- but this SQL-only Haversine works fine for thousands of rows.
+CREATE OR REPLACE FUNCTION get_nearby_prospects(
+  user_lat double precision,
+  user_lng double precision,
+  radius_km double precision,
+  max_limit integer
+)
+RETURNS TABLE (
+  id bigint,
+  name text,
+  phone text,
+  website text,
+  city text,
+  category text,
+  address text,
+  latitude numeric,
+  longitude numeric,
+  rating numeric,
+  reviews integer,
+  has_website boolean,
+  is_prospect_to_contact boolean,
+  status text,
+  distance_km double precision
+)
+LANGUAGE sql
+AS $$
+  SELECT 
+    p.id, p.name::text, p.phone::text, p.website::text, p.city::text, p.category::text, p.address::text, p.latitude, p.longitude, p.rating, p.reviews, p.has_website, p.is_prospect_to_contact, p.status::text,
+    -- Haversine formula for distance in kilometers
+    (
+      6371 * acos(
+        cos(radians(user_lat)) * cos(radians(p.latitude::double precision)) *
+        cos(radians(p.longitude::double precision) - radians(user_lng)) +
+        sin(radians(user_lat)) * sin(radians(p.latitude::double precision))
+      )
+    ) AS distance_km
+  FROM prospects p
+  WHERE p.latitude IS NOT NULL AND p.longitude IS NOT NULL
+  AND (
+      6371 * acos(
+        cos(radians(user_lat)) * cos(radians(p.latitude::double precision)) *
+        cos(radians(p.longitude::double precision) - radians(user_lng)) +
+        sin(radians(user_lat)) * sin(radians(p.latitude::double precision))
+      )
+  ) <= radius_km
+  ORDER BY distance_km ASC
+  LIMIT max_limit;
+$$;
