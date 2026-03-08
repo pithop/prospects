@@ -6,6 +6,7 @@ import { LayoutDashboard, Users, Target, CheckCircle, Search, Filter, Plus, Uplo
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 import GeoSearch from '@/components/GeoSearch';
+import ProspectMap from '@/components/ProspectMap';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
@@ -416,11 +417,30 @@ export default function Home() {
             Loading prospects...
           </div>
         ) : (
-          <ProspectList
-            prospects={prospects}
-            onMarkContacted={handleMarkContacted}
-            onDelete={handleDelete}
-          />
+          <div className="flex flex-col gap-8">
+            {/* Show Map if any prospects have coordinates */}
+            {prospects.some(p => p.latitude && p.longitude) && (
+              <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <Target className="h-5 w-5 text-primary" />
+                  Carte Interactive
+                </h3>
+                <ProspectMap prospects={prospects} />
+              </div>
+            )}
+
+            <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <LayoutDashboard className="h-5 w-5 text-primary" />
+                Liste des Prospects
+              </h3>
+              <ProspectList
+                prospects={prospects}
+                onMarkContacted={handleMarkContacted}
+                onDelete={handleDelete}
+              />
+            </div>
+          </div>
         )}
 
         {/* Pagination Controls (Server-Side) */}
