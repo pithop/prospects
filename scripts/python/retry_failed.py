@@ -16,7 +16,7 @@ FAILED_FILES = [
 ]
 
 RESULTS_DIR = "data/results"
-API_URL = os.getenv("PROSPECTING_API_URL", "http://localhost:3000/api/import")
+API_URL = os.getenv("PROSPECTING_API_URL", "https://prospecthub-vercel.vercel.app/api/import")
 SECRET_KEY = os.getenv("PROSPECTING_SECRET_KEY", "prospecthub_super_secret_dev_key_2026")
 
 def normalize_time(t):
