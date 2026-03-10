@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "import-local": "node scripts/import_local.js",
+    "update-delivery": "node scripts/db_backfill_delivery.js",
     "build": "next build",
     "start": "next start",
     "export": "next build && next export"
