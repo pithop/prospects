@@ -54,8 +54,8 @@ export default function ProspectList({ prospects, onMarkContacted, onDelete }) {
 
 **LIVRABLES POUR LE COMMERCIAL (DOIT ÊTRE LU EN 30 SECONDES) :**
 1. **L'Icebreaker (L'Accroche) :** Trouve LA phrase d'ouverture ultra-spécifique (ex: "J'ai lu votre dernier avis", "J'ai cherché un [catégorie] à [ville] et j'ai remarqué un détail frustrant...") pour retenir son attention dès les 10 premières secondes.
-2. **Le Point de Saignement (Pain Point) :** Quel est son pire cauchemar actuel ? (ex: Payer 30% de commission à UberEats, les tables vides le mardi, les clients qui vont chez le voisin car ils ne le trouvent pas sur Google).
-3. **Le Pitch Sniper :** Un argumentaire éclair de 3 phrases, incisif, basé sur CE prospect précisément. Pas de blabla, que du ROI. Angle suggéré : ${!p.website ? "La souveraineté numérique (ne pas dépendre que des plateformes)." : "Maximiser la valeur de chaque visiteur du site."}
+2. **Le Point de Saignement (Pain Point) :** Quel est son pire cauchemar actuel ? (ex: Payer 30% de commission à UberEats, les tables vides le mardi, les clients qui vont chez le voisin car ils ne le trouvent pas sur Google). ${p.has_delivery_app ? "IL UTILISE UBEREATS/DELIVEROO : Insiste lourdement sur la marge qu'il perd à cause des 30% de commission !" : ""}
+3. **Le Pitch Sniper :** Un argumentaire éclair de 3 phrases, incisif, basé sur CE prospect précisément. Pas de blabla, que du ROI. Angle suggéré : ${p.has_delivery_app ? "On vous crée votre propre système de commande pour 5€ fixe sans commission." : (!p.website ? "La souveraineté numérique (ne pas dépendre que des plateformes)." : "Maximiser la valeur de chaque visiteur du site.")}
 4. **Le Bouclier (Traitement des Objections) :** Donne-moi les 2 objections les plus probables qu'il va me balancer (ex: "J'ai pas le temps", "Ça coûte trop cher") et la réplique parfaite et inattendue pour chacune.
 
 **CONTRAINTES :** Format "Commandos" (Bullet points, phrases très courtes, mots percutants). Écris pour le commercial.`;
@@ -140,6 +140,11 @@ export default function ProspectList({ prospects, onMarkContacted, onDelete }) {
                                         <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-purple-400/10 px-2.5 py-1.5 text-xs font-medium text-purple-400 border border-purple-400/20">
                                             <Clock className="h-3.5 w-3.5" />
                                             Call: {p.best_time_to_call}
+                                        </div>
+                                    )}
+                                    {p.has_delivery_app && (
+                                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-orange-400/10 px-2.5 py-1.5 text-xs font-medium text-orange-400 border border-orange-400/20">
+                                            🛵 Utilise UberEats/Deliveroo
                                         </div>
                                     )}
                                 </td>

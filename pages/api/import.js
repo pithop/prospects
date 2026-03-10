@@ -50,9 +50,13 @@ export default async function handler(req, res) {
     };
 
     const toInsert = items.map((it) => {
-      const name = it.name || it.title || it.nom || it.place || it.place_id || '';
-      const phone = it.phone || it.telephone || it.tel || it.phone_number || null;
-      const website = it.web_site || it.website || it.site || it.url || null;
+      // Truncate fields to prevent 500 error "value too long for type character varying"
+      const truncate = (str, max) => (str && str.length > max ? str.substring(0, max) : str);
+
+      const name = truncate(it.name || it.title || it.nom || it.place || it.place_id || '', 250);
+      const phone = truncate(it.phone || it.telephone || it.tel || it.phone_number || null, 50);
+      const website = truncate(it.web_site || it.website || it.site || it.url || null, 500);
+
       // category: prefer main_category, then first of categories if comma-separated, then generic
       let category = 'Non spécifié';
       if (it.main_category) category = it.main_category;
@@ -61,6 +65,8 @@ export default async function handler(req, res) {
         if (Array.isArray(it.categories) && it.categories.length) category = it.categories[0];
         else if (typeof it.categories === 'string') category = it.categories.split(',')[0].trim();
       }
+      category = truncate(category, 100);
+
       const rating = Number(it.rating || it.note || it.review_rating || 0) || 0;
       const reviews = parseInt(it.reviews || it.avis || it.reviews_count || it.review_count || 0) || 0;
       const notes = it.description || it.notes || it.comment || '';
@@ -77,8 +83,8 @@ export default async function handler(req, res) {
         } else if (tokens.length === 1) itemCity = tokens[0];
       }
 
-      const address = it.address || null;
-      const google_maps_url = it.google_maps_url || it.link || it.url || it.map_url || null;
+      const address = truncate(it.address || null, 500);
+      const google_maps_url = truncate(it.google_maps_url || it.link || it.url || it.map_url || null, 510);
       const popular_times = it.popular_times || null;
       const best_time_to_call = it.best_time_to_call || null;
 
@@ -88,6 +94,28 @@ export default async function handler(req, res) {
       const isThirdParty = website ? thirdPartyDomains.some(domain => website.includes(domain)) : false;
       const hasRealWebsite = website && !isThirdParty;
       const isProspect = !hasRealWebsite;
+
+      // Delivery App Detection
+      let hasDeliveryApp = false;
+      const deliveryKeywords = ['ubereats', 'deliveroo', 'just-eat', 'glovo', 'doordash', 'wolt'];
+
+      const checkPlatform = (linkStr) => {
+        if (!linkStr) return false;
+        return deliveryKeywords.some(kw => linkStr.toLowerCase().includes(kw));
+      };
+
+      if (checkPlatform(website)) hasDeliveryApp = true;
+      if (it.order_online && Array.isArray(it.order_online)) {
+        it.order_online.forEach(orderLink => {
+          if (checkPlatform(orderLink.link) || checkPlatform(orderLink.source)) {
+            hasDeliveryApp = true;
+          }
+        });
+      }
+      // sometimes menu links contains ubereats or deliveroo
+      if (it.menu && it.menu.link && checkPlatform(it.menu.link)) {
+        hasDeliveryApp = true;
+      }
 
       return {
         name,
@@ -109,14 +137,15 @@ export default async function handler(req, res) {
         contact_date: null,
         status: 'nouveau',
         latitude,
-        longitude
+        longitude,
+        has_delivery_app: hasDeliveryApp
       };
     });
 
     const { data, error } = await supabase.from('prospects').insert(toInsert).select();
     if (error) {
       const msg = error.message || '';
-      const createTableSQL = `-- Run this SQL in Supabase SQL editor to create the \`prospects\` table\nCREATE TABLE prospects (\n  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,\n  name VARCHAR(255) NOT NULL,\n  phone VARCHAR(50),\n  website VARCHAR(512),\n  city VARCHAR(255),\n  category VARCHAR(100),\n  address VARCHAR(512),\n  latitude NUMERIC,\n  longitude NUMERIC,\n  rating NUMERIC(3,1) DEFAULT 0,\n  reviews INTEGER DEFAULT 0,\n  notes TEXT,\n  is_third_party BOOLEAN DEFAULT FALSE,\n  has_website BOOLEAN DEFAULT FALSE,\n  is_prospect_to_contact BOOLEAN DEFAULT FALSE,\n  contacted BOOLEAN DEFAULT FALSE,\n  contact_date TIMESTAMP,\n  status VARCHAR(50) DEFAULT 'nouveau',\n  created_at TIMESTAMP DEFAULT NOW(),\n  updated_at TIMESTAMP DEFAULT NOW()\n);`;
+      const createTableSQL = `-- Run this SQL in Supabase SQL editor to create the \`prospects\` table\nCREATE TABLE prospects (\n  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,\n  name VARCHAR(255) NOT NULL,\n  phone VARCHAR(50),\n  website VARCHAR(512),\n  city VARCHAR(255),\n  category VARCHAR(100),\n  address VARCHAR(512),\n  latitude NUMERIC,\n  longitude NUMERIC,\n  rating NUMERIC(3,1) DEFAULT 0,\n  reviews INTEGER DEFAULT 0,\n  notes TEXT,\n  is_third_party BOOLEAN DEFAULT FALSE,\n  has_website BOOLEAN DEFAULT FALSE,\n  is_prospect_to_contact BOOLEAN DEFAULT FALSE,\n  has_delivery_app BOOLEAN DEFAULT FALSE,\n  contacted BOOLEAN DEFAULT FALSE,\n  contact_date TIMESTAMP,\n  status VARCHAR(50) DEFAULT 'nouveau',\n  created_at TIMESTAMP DEFAULT NOW(),\n  updated_at TIMESTAMP DEFAULT NOW()\n);`;
       if (/Could not find the table|relation .*prospects.* does not exist|does not exist/i.test(msg)) {
         return res.status(500).json({ error: 'Table `prospects` not found in your Supabase project. Create it using the provided SQL.', sql: createTableSQL });
       }

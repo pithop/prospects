@@ -113,7 +113,14 @@ export default function Home() {
       } else {
         // Server-side filtering
         if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
-        if (filter) url += `&status=${filter}`;
+
+        // Handle custom "has_delivery_app" filter
+        if (filter === 'livraison') {
+          url += `&delivery=true`;
+        } else if (filter) {
+          url += `&status=${filter}`;
+        }
+
         if (selectedCity && selectedCity !== 'All') url += `&city=${encodeURIComponent(selectedCity)}`;
       }
 
@@ -329,6 +336,7 @@ export default function Home() {
           <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/50 p-1">
             <FilterBtn active={filter === 'nouveau'} onClick={() => setFilter('nouveau')} label="Nouveaux" />
             <FilterBtn active={filter === 'contacter'} onClick={() => setFilter('contacter')} label="Hot Leads 🔥" />
+            <FilterBtn active={filter === 'livraison'} onClick={() => setFilter('livraison')} label="Livraison 🛵" />
             <FilterBtn active={filter === 'contactes'} onClick={() => setFilter('contactes')} label="Déjà Contactés" />
           </div>
 
