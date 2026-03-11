@@ -47,8 +47,11 @@ export default async function handler(req, res) {
       }
     }
 
-    // 2. Status Filter
-    if (req.query.status) {
+    // 2. Status & Delivery Filter
+    if (req.query.delivery === 'true') {
+      // Show ONLY prospects with delivery apps
+      query = query.eq('has_delivery_app', true);
+    } else if (req.query.status) {
       switch (req.query.status) {
         case 'nouveau':
           // Default view: Not contacted

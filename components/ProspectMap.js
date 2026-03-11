@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { MapPin, Globe, Phone, ExternalLink, Star } from 'lucide-react';
+import { MapPin, Bike, Globe, Phone, ExternalLink, Star } from 'lucide-react';
 
 const CARTO_DARK_MATTER = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
@@ -35,8 +35,14 @@ export default function ProspectMap({ prospects = [] }) {
             // Must have coordinates to display
             if (!prospect.latitude || !prospect.longitude) return null;
 
+            const isDelivery = prospect.has_delivery_app;
             const isHotLead = prospect.status === 'nouveau' && !prospect.has_website && prospect.rating >= 4.5;
-            const pinColor = isHotLead ? '#ef4444' : '#3b82f6'; // Red for hot leads, blue otherwise
+
+            let pinColor = '#3b82f6'; // blue
+            if (isHotLead) pinColor = '#ef4444'; // red
+            if (isDelivery) pinColor = '#f97316'; // orange
+
+            const Icon = isDelivery ? Bike : MapPin;
 
             return (
                 <Marker
@@ -50,14 +56,20 @@ export default function ProspectMap({ prospects = [] }) {
                     }}
                 >
                     <div className="relative group cursor-pointer transform hover:scale-125 transition-transform duration-200">
-                        <MapPin
+                        <Icon
                             className="w-10 h-10 drop-shadow-lg"
                             style={{ color: pinColor, fill: `${pinColor}40` }} // 25% opacity fill
                         />
-                        {isHotLead && (
+                        {(isHotLead && !isDelivery) && (
                             <span className="absolute -top-1 -right-1 flex h-3 w-3">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                            </span>
+                        )}
+                        {isDelivery && (
+                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
                             </span>
                         )}
                     </div>
@@ -90,7 +102,14 @@ export default function ProspectMap({ prospects = [] }) {
                     >
                         <div className="bg-[#0b1120] border border-white/10 p-4 rounded-xl shadow-2xl flex flex-col gap-3">
                             <div className="flex justify-between items-start gap-4">
-                                <h3 className="text-white font-bold text-lg leading-tight">{popupInfo.name}</h3>
+                                <div className="flex flex-col gap-1">
+                                    <h3 className="text-white font-bold text-lg leading-tight">{popupInfo.name}</h3>
+                                    {popupInfo.has_delivery_app && (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 w-fit rounded text-[10px] uppercase tracking-wider font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                                            🛵 UberEats/Deliveroo
+                                        </span>
+                                    )}
+                                </div>
                                 <button
                                     onClick={() => setPopupInfo(null)}
                                     className="text-gray-400 hover:text-white transition-colors"
