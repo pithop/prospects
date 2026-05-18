@@ -12,8 +12,8 @@ load_dotenv()
 
 # Configuration
 CITY = "Montpellier"
-# The Place ID for Montpellier, France (from Google Places API)
-PLACE_ID = "ChIJDyN2O23CtRIRMI_eT1v4_q0" 
+# The Place ID for Montpellier, France (must match the cookie uev2.loc reference)
+PLACE_ID = "ChIJsZ3dJQevthIRAuiUKHRWh60" 
 
 UBER_EATS_API_URL = "https://www.ubereats.com/_p/api/getFeedV1"
 ZYTE_API_KEY = os.getenv("ZYTE_API_KEY", "")
@@ -33,92 +33,85 @@ except Exception as e:
 # Exclusion logic
 EXCLUDED_DOMAINS = ["facebook", "instagram", "tripadvisor", "deliveroo", "just-eat", "ubereats", "tiktok"]
 
-async def fetch_uber_eats_restaurants(client: httpx.AsyncClient):
+async def fetch_uber_eats_restaurants():
     print(f"Fetching Uber Eats restaurants for {CITY}...")
     offset = 0
     page_size = 80
     has_more = True
     restaurants = []
     
-    # Ensure we have strings even if dotenv fails
     csrf_token = os.getenv("UBER_CSRF_TOKEN") or "x"
     cookie = os.getenv("UBER_COOKIE") or ""
 
-    while has_more:
-        print(f"Fetching offset {offset}...")
-        payload = {
-            "placeId": PLACE_ID,
-            "provider": "google_places",
-            "source": "manual_auto_complete",
-            "pageInfo": {
-                "offset": offset,
-                "pageSize": page_size
+    # Use Zyte Smart Proxy Manager directly instead of Extract API to prevent cookie stripping
+    proxy = f"http://{ZYTE_API_KEY}:@api.zyte.com:8011"
+    
+    async with httpx.AsyncClient(proxy=proxy, verify=False) as client:
+        while has_more:
+            print(f"Fetching offset {offset}...")
+            payload = {
+                "placeId": PLACE_ID,
+                "provider": "google_places",
+                "source": "manual_auto_complete",
+                "pageInfo": {
+                    "offset": offset,
+                    "pageSize": page_size
+                }
             }
-        }
-        
-        zyte_payload = {
-            "url": UBER_EATS_API_URL,
-            "httpResponseBody": True,
-            "httpRequestMethod": "POST",
-            "geolocation": "FR",  # Ensure Zyte uses a French IP
-            "customHttpRequestHeaders": [
-                {"name": "x-csrf-token", "value": csrf_token},
-                {"name": "cookie", "value": cookie},
-                {"name": "content-type", "value": "application/json"},
-                {"name": "accept", "value": "*/*"},
-                {"name": "origin", "value": "https://www.ubereats.com"}
-            ],
-            "httpRequestBody": base64.b64encode(json.dumps(payload).encode()).decode()
-        }
-        
-        try:
-            # Send request to Zyte API with Basic Auth
-            response = await client.post(
-                "https://api.zyte.com/v1/extract", 
-                auth=(ZYTE_API_KEY, ""), 
-                json=zyte_payload, 
-                timeout=45.0
-            )
-            response.raise_for_status()
             
-            # Zyte returns the original response body encoded in base64
-            zyte_data = response.json()
-            raw_body = base64.b64decode(zyte_data["httpResponseBody"]).decode("utf-8")
-            data = json.loads(raw_body)
+            headers = {
+                "x-csrf-token": csrf_token,
+                "cookie": cookie,
+                "content-type": "application/json",
+                "accept": "*/*",
+                "origin": "https://www.ubereats.com",
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "X-Crawlera-Region": "FR" # Force French IP for UberEats
+            }
             
-            feed_items = data.get("data", {}).get("feedItems", [])
-            for item in feed_items:
-                store = item.get("store", {})
-                if store:
-                    uuid = store.get("storeUuid")
-                    title = store.get("title", {}).get("text", "")
-                    action_url = store.get("actionUrl", "")
-                    if uuid and title:
-                        restaurants.append({
-                            "uuid": uuid,
-                            "title": title,
-                            "url": f"https://www.ubereats.com{action_url}" if action_url.startswith("/") else action_url
-                        })
-            
-            has_more = data.get("data", {}).get("pageInfo", {}).get("hasMore", False)
-            offset += page_size
-            
-            if len(restaurants) == 0:
-                print("No valid restaurants found in this page. Exiting pagination loop.")
-                print("--- DEBUG UBER EATS RESPONSE (FIRST 1000 CHARACTERS) ---")
-                print(raw_body[:1000])
-                print("--------------------------------------------------------")
+            try:
+                response = await client.post(
+                    UBER_EATS_API_URL, 
+                    headers=headers, 
+                    json=payload, 
+                    timeout=45.0
+                )
+                response.raise_for_status()
                 
-                # Check for Zyte specific or Uber specific errors
-                if "status" in data and data["status"] == "failure":
-                    print("Uber Eats returned a FAILURE status. Your Cookie or Token is likely rejected.")
+                data = response.json()
+                raw_body = response.text
                 
+                feed_items = data.get("data", {}).get("feedItems", [])
+                for item in feed_items:
+                    store = item.get("store", {})
+                    if store:
+                        uuid = store.get("storeUuid")
+                        title = store.get("title", {}).get("text", "")
+                        action_url = store.get("actionUrl", "")
+                        if uuid and title:
+                            restaurants.append({
+                                "uuid": uuid,
+                                "title": title,
+                                "url": f"https://www.ubereats.com{action_url}" if action_url.startswith("/") else action_url
+                            })
+                
+                has_more = data.get("data", {}).get("pageInfo", {}).get("hasMore", False)
+                offset += page_size
+                
+                if len(restaurants) == 0:
+                    print("No valid restaurants found in this page. Exiting pagination loop.")
+                    print("--- DEBUG UBER EATS RESPONSE (FIRST 1000 CHARACTERS) ---")
+                    print(raw_body[:1000])
+                    print("--------------------------------------------------------")
+                    
+                    if "status" in data and data["status"] == "failure":
+                        print("Uber Eats returned a FAILURE status. Your Cookie or Token is likely rejected.")
+                    break
+                    
+            except Exception as e:
+                print(f"Error fetching Uber Eats data: {e}")
                 break
                 
-        except Exception as e:
-            print(f"Error fetching Uber Eats data: {e}")
-            break
-            
     return restaurants
 
 def clean_restaurant_name(name):
@@ -183,7 +176,7 @@ async def main():
     print("--- ProspectHub V2 Scraping Pipeline ---")
     async with httpx.AsyncClient() as client:
         # 1. Extraction Uber Eats
-        restaurants = await fetch_uber_eats_restaurants(client)
+        restaurants = await fetch_uber_eats_restaurants()
         print(f"Found {len(restaurants)} total restaurants on Uber Eats for {CITY}.")
         
         if not restaurants:
