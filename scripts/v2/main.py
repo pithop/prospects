@@ -103,11 +103,16 @@ async def fetch_uber_eats_restaurants(client: httpx.AsyncClient):
             has_more = data.get("data", {}).get("pageInfo", {}).get("hasMore", False)
             offset += page_size
             
-            if not feed_items:
-                print("No feed items returned. Exiting pagination loop.")
-                print("--- DEBUG UBER EATS RESPONSE ---")
-                print(json.dumps(data)[:1000])  # Print the first 1000 chars to debug
-                print("--------------------------------")
+            if len(restaurants) == 0:
+                print("No valid restaurants found in this page. Exiting pagination loop.")
+                print("--- DEBUG UBER EATS RESPONSE (FIRST 1000 CHARACTERS) ---")
+                print(raw_body[:1000])
+                print("--------------------------------------------------------")
+                
+                # Check for Zyte specific or Uber specific errors
+                if "status" in data and data["status"] == "failure":
+                    print("Uber Eats returned a FAILURE status. Your Cookie or Token is likely rejected.")
+                
                 break
                 
         except Exception as e:
