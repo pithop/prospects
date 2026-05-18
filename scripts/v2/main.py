@@ -394,7 +394,22 @@ async def main():
             print(f"  ✅ Processed {processed}/{len(restaurants)}...")
             await asyncio.sleep(2)  # Rate limiting between chunks
 
-    # 3. FILTERING: Keep only prospects WITHOUT independent website
+    # 3. DEDUPLICATION: Uber Eats returns duplicates across pages
+    seen_uuids = {}
+    for p in enriched_data:
+        uuid = p["uber_store_uuid"]
+        if uuid not in seen_uuids:
+            seen_uuids[uuid] = p
+        else:
+            # Keep the entry with more data (prefer one with email/phone)
+            existing = seen_uuids[uuid]
+            if p.get("email") and not existing.get("email"):
+                seen_uuids[uuid] = p
+            elif p.get("phone_number") and not existing.get("phone_number"):
+                seen_uuids[uuid] = p
+    enriched_data = list(seen_uuids.values())
+
+    # 4. FILTERING: Keep only prospects WITHOUT independent website
     all_enriched = len(enriched_data)
     final_prospects = [p for p in enriched_data if not p.get("has_independent_website")]
 
@@ -406,26 +421,29 @@ async def main():
     print(f"\n{'=' * 60}")
     print(f"  📊 RÉSULTATS FINAUX")
     print(f"{'=' * 60}")
-    print(f"  Total enrichis:              {all_enriched}")
+    print(f"  Total enrichis (uniques):    {all_enriched}")
     print(f"  Prospects qualifiés (no web): {len(final_prospects)}")
     print(f"  Avec téléphone:              {with_phone}")
     print(f"  Avec email:                  {with_email}")
     print(f"  Avec rating Google:          {with_rating}")
     print(f"{'=' * 60}")
 
-    # 4. SYNC: Upsert to Supabase
+    # 5. SYNC: Upsert to Supabase
     if final_prospects and supabase:
         print("\n💾 Syncing to Supabase...")
         try:
-            # Batch upsert in groups of 50
-            batch_size = 50
-            for i in range(0, len(final_prospects), batch_size):
-                batch = final_prospects[i:i + batch_size]
-                supabase.table("prospects_v2").upsert(
-                    batch,
-                    on_conflict="uber_store_uuid"
-                ).execute()
-                print(f"  ✅ Upserted batch {i // batch_size + 1}...")
+            # Upsert one by one to avoid any duplicate conflicts within batches
+            success_count = 0
+            for p in final_prospects:
+                try:
+                    supabase.table("prospects_v2").upsert(
+                        p,
+                        on_conflict="uber_store_uuid"
+                    ).execute()
+                    success_count += 1
+                except Exception as e:
+                    print(f"  ⚠️  Skipped {p.get('restaurant_name', '?')}: {e}")
+            print(f"  ✅ Upserted {success_count}/{len(final_prospects)} prospects.")
 
             print(f"\n🎉 SUCCESS! {len(final_prospects)} prospects saved to Supabase!")
         except Exception as e:
