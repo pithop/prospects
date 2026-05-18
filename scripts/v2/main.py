@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import httpx
 import json
 import os
@@ -15,13 +16,13 @@ CITY = "Montpellier"
 PLACE_ID = "ChIJDyN2O23CtRIRMI_eT1v4_q0" 
 
 UBER_EATS_API_URL = "https://www.ubereats.com/_p/api/getFeedV1"
-SCRAPE_DO_TOKEN = os.getenv("SCRAPE_DO_TOKEN", "")
+ZYTE_API_KEY = os.getenv("ZYTE_API_KEY", "")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY", "")
 SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "") 
 
-if not all([SCRAPE_DO_TOKEN, SERPER_API_KEY, SUPABASE_URL, SUPABASE_KEY]):
-    print("WARNING: Missing environment variables. Make sure SCRAPE_DO_TOKEN, SERPER_API_KEY, and SUPABASE credentials are set in .env")
+if not all([ZYTE_API_KEY, SERPER_API_KEY, SUPABASE_URL, SUPABASE_KEY]):
+    print("WARNING: Missing environment variables. Make sure ZYTE_API_KEY, SERPER_API_KEY, and SUPABASE credentials are set in .env")
 
 try:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -55,24 +56,32 @@ async def fetch_uber_eats_restaurants(client: httpx.AsyncClient):
             }
         }
         
-        headers = {
-            "sd-x-csrf-token": csrf_token,
-            "sd-cookie": cookie,
-            "sd-content-type": "application/json"
-        }
-        
-        params = {
-            "token": SCRAPE_DO_TOKEN,
+        zyte_payload = {
             "url": UBER_EATS_API_URL,
-            "super": "true",
-            "extraHeaders": "true"
+            "httpResponseBody": True,
+            "httpRequestMethod": "POST",
+            "customHttpRequestHeaders": [
+                {"name": "x-csrf-token", "value": csrf_token},
+                {"name": "cookie", "value": cookie},
+                {"name": "content-type", "value": "application/json"}
+            ],
+            "httpRequestBody": base64.b64encode(json.dumps(payload).encode()).decode()
         }
         
         try:
-            # We add timeout because Scrape.do might take a while on super proxies
-            response = await client.post("https://api.scrape.do", params=params, json=payload, headers=headers, timeout=30.0)
+            # Send request to Zyte API with Basic Auth
+            response = await client.post(
+                "https://api.zyte.com/v1/extract", 
+                auth=(ZYTE_API_KEY, ""), 
+                json=zyte_payload, 
+                timeout=45.0
+            )
             response.raise_for_status()
-            data = response.json()
+            
+            # Zyte returns the original response body encoded in base64
+            zyte_data = response.json()
+            raw_body = base64.b64decode(zyte_data["httpResponseBody"]).decode("utf-8")
+            data = json.loads(raw_body)
             
             feed_items = data.get("data", {}).get("feedItems", [])
             for item in feed_items:
@@ -167,7 +176,7 @@ async def main():
         print(f"Found {len(restaurants)} total restaurants on Uber Eats for {CITY}.")
         
         if not restaurants:
-            print("No restaurants found. Please check your SCRAPE_DO_TOKEN, UBER_CSRF_TOKEN, and UBER_COOKIE.")
+            print("No restaurants found. Please check your ZYTE_API_KEY, UBER_CSRF_TOKEN, and UBER_COOKIE.")
             return
 
         # 2. Enrichissement Google Maps (Serper)
