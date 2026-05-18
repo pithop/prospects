@@ -4,7 +4,7 @@ import httpx
 import json
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
@@ -166,7 +166,7 @@ async def enrich_with_serper(client: httpx.AsyncClient, restaurant):
                 "has_independent_website": has_independent_website,
                 "latitude": lat,
                 "longitude": lng,
-                "last_enriched_at": datetime.utcnow().isoformat()
+                "last_enriched_at": datetime.now(timezone.utc).isoformat()
             }
     except Exception as e:
         print(f"Error enriching {query}: {e}")
@@ -188,7 +188,8 @@ async def main():
         enriched_data = []
         
         # We chunk the tasks to avoid overloading the async event loop / connection pool
-        chunk_size = 20
+        # Reduced chunk size to 5 and added a 1-second sleep to avoid Serper.dev 429 Too Many Requests
+        chunk_size = 5
         for i in range(0, len(restaurants), chunk_size):
             chunk = restaurants[i:i + chunk_size]
             tasks = [enrich_with_serper(client, r) for r in chunk]
@@ -199,6 +200,7 @@ async def main():
                     enriched_data.append(r)
                     
             print(f"Processed {min(i + chunk_size, len(restaurants))}/{len(restaurants)}...")
+            await asyncio.sleep(1)  # Rate limiting
         
         # 3. Filtrage stricte
         final_prospects = [p for p in enriched_data if not p.get("has_independent_website")]
