@@ -40,9 +40,9 @@ async def fetch_uber_eats_restaurants(client: httpx.AsyncClient):
     has_more = True
     restaurants = []
     
-    # In a production scenario, these might need to be dynamically updated or passed in
-    csrf_token = os.getenv("UBER_CSRF_TOKEN", "dummy_csrf_token")
-    cookie = os.getenv("UBER_COOKIE", "uev2.loc=dummy_location_cookie")
+    # Ensure we have strings even if dotenv fails
+    csrf_token = os.getenv("UBER_CSRF_TOKEN") or "x"
+    cookie = os.getenv("UBER_COOKIE") or ""
 
     while has_more:
         print(f"Fetching offset {offset}...")
@@ -60,10 +60,13 @@ async def fetch_uber_eats_restaurants(client: httpx.AsyncClient):
             "url": UBER_EATS_API_URL,
             "httpResponseBody": True,
             "httpRequestMethod": "POST",
+            "geolocation": "FR",  # Ensure Zyte uses a French IP
             "customHttpRequestHeaders": [
                 {"name": "x-csrf-token", "value": csrf_token},
                 {"name": "cookie", "value": cookie},
-                {"name": "content-type", "value": "application/json"}
+                {"name": "content-type", "value": "application/json"},
+                {"name": "accept", "value": "*/*"},
+                {"name": "origin", "value": "https://www.ubereats.com"}
             ],
             "httpRequestBody": base64.b64encode(json.dumps(payload).encode()).decode()
         }
@@ -102,6 +105,9 @@ async def fetch_uber_eats_restaurants(client: httpx.AsyncClient):
             
             if not feed_items:
                 print("No feed items returned. Exiting pagination loop.")
+                print("--- DEBUG UBER EATS RESPONSE ---")
+                print(json.dumps(data)[:1000])  # Print the first 1000 chars to debug
+                print("--------------------------------")
                 break
                 
         except Exception as e:
