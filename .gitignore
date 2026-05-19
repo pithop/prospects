@@ -53,3 +53,4 @@ PROSPECTHUB_CONTEXT_FOR_AI.md
 test_delivery_logic.js
 scripts/v2/supabase_v2_setup.sql
 env.txt
+prospects_v2_rows.csv
